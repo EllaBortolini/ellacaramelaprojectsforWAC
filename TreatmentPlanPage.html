@@ -1,0 +1,3086 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Treatment Plan Builder</title>
+
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #D1B37D;
+      --shadow: 0 2px 10px rgba(0, 0, 0, .06);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      padding: 18px;
+      font-family: Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      position: relative;
+    }
+
+    /* UI watermark */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: 520px;
+      height: 520px;
+      background: url('https://assets.cdn.filesafe.space/Hoy53z3hkBCQoCR1ayzn/media/6993c00a8ef1b98a1834ffb3.jpeg') no-repeat center center;
+      background-size: contain;
+      opacity: 0.1;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      max-width: 1150px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    #printRoot {
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    /* Header (must be included in PDF capture) */
+    .plan-summary-header {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .plan-summary-left h1 {
+      margin: 0 0 6px 0;
+      font-size: 20px;
+      letter-spacing: .2px;
+    }
+
+    .plan-summary-left .sub {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .plan-summary-right {
+      text-align: right;
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 220px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 980px) {
+      .plan-summary-right {
+        text-align: left
+      }
+
+      .plan-summary-header {
+        flex-direction: column
+      }
+    }
+
+    /* Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 1.35fr .65fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* Cards */
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0 0 12px 0;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: #D1B37D !important;
+    }
+
+    h2 strong {
+      color: #D1B37D !important;
+      font-weight: bold !important;
+    }
+
+    .pill {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: normal;
+    }
+
+    /* Controls */
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 10px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 980px) {
+      .row {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* Orthotics */
+    .orthotic-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+    }
+
+    .orthotic-item label {
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .orthotic-pos-select {
+      display: none;
+      width: 130px;
+      padding: 8px 8px;
+      font-size: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    /* Plan details table */
+    #planDetails {
+      display: none;
+    }
+
+    #planDetails table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    #planDetails td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    #planDetails td:first-child {
+      width: 70%;
+    }
+
+    #planDetails td:last-child {
+      width: 30%;
+      text-align: right;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+
+    .light-text {
+      font-weight: lighter;
+      color: #666;
+    }
+
+    .indent {
+      margin-left: 20px;
+    }
+
+    /* Additional recs */
+    #dropdownContainer {
+      display: none;
+    }
+
+    .helper {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: -6px;
+      line-height: 1.4;
+    }
+
+    #addonCheckboxPanel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fafbfc;
+    }
+
+    .addon-checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s;
+      font-size: 14px;
+    }
+
+    .addon-checkbox-item:hover {
+      background: #eef1f6;
+    }
+
+    .addon-checkbox-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .addon-label {
+      flex: 1;
+      color: var(--ink);
+    }
+
+    .addon-price {
+      font-weight: bold;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    /* Selected add-ons dynamic list */
+    .selected-addons-list {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fafbfc;
+    }
+
+    .selected-addons-list h3 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .selected-addon-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 13px;
+    }
+
+    .selected-addon-row:last-child {
+      border-bottom: none;
+    }
+
+    .selected-addon-row .addon-name {
+      color: var(--ink);
+    }
+
+    .selected-addon-row .addon-cost {
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    /* Financial */
+    .financial-info {
+      display: none;
+      text-align: right;
+      font-weight: bold;
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .financial-info p {
+      margin: 8px 0;
+    }
+
+    .downpay-wrap {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--line);
+      text-align: left;
+    }
+
+    .downpay-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .tinyhelp {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    /* Office policies readability */
+    #office-policies p {
+      line-height: 1.5;
+      font-size: 0.95em;
+    }
+
+    /* Signature */
+    .signature-area {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    .signature-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .btn-primary {
+      font-size: 16px;
+      height: 42px;
+      padding: 0 14px;
+      background: var(--accent);
+      color: #fff;
+      outline: none;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      transition: .2s;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(.95)
+    }
+
+    .btn-secondary {
+      font-size: 14px;
+      height: 42px;
+      padding: 0 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .btn-tertiary {
+      font-size: 14px;
+      height: 42px;
+      padding: 0 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px dashed var(--line);
+      background: #fff;
+      color: var(--muted);
+    }
+
+    #clearSignature {
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      height: 42px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: .9em;
+      color: #999;
+      margin-top: 14px;
+    }
+
+    /* Only used during PDF generation (notes hidden if empty) */
+    .hideForPdf {
+      display: none !important;
+    }
+
+    /* ===== Notes PDF fix =====
+       html2canvas can render <textarea> content weirdly in capture.
+       For PDF capture we swap textarea -> a div that preserves newlines.
+    */
+    .notes-print {
+      display: none;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 10px;
+      font-size: 14px;
+      background: #fff;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.35;
+      min-height: 92px;
+    }
+
+    .pdfMode .notes-print {
+      display: block;
+    }
+
+    .pdfMode #notesInput {
+      display: none;
+    }
+
+    /* Alt Pricing: always hidden during PDF capture */
+    .pdfMode .hideAltForPdf {
+      display: none !important;
+    }
+
+    /* Supplements section */
+    .supp-search-wrap {
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .supp-search-wrap input {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+      background: #fff;
+    }
+
+    .supp-autocomplete {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .1);
+      z-index: 100;
+      display: none;
+    }
+
+    .supp-autocomplete-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      border-bottom: 1px solid #f0f2f5;
+    }
+
+    .supp-autocomplete-item:hover {
+      background: #eef1f6;
+    }
+
+    .supp-selected-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .supp-selected-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: #f0f4ff;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .supp-selected-item .supp-remove {
+      background: none;
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    /* Unified ComboBox */
+    .supp-search-wrap {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      position: relative;
+      background: #fff;
+    }
+
+    #suppSearchInput {
+      flex: 1;
+      border: none !important;
+      border-radius: 12px 0 0 12px !important;
+      margin-bottom: 0 !important;
+      box-shadow: none !important;
+    }
+
+    #suppSearchInput:focus {
+      outline: none;
+    }
+
+    .supp-toggle-btn {
+      width: 40px;
+      flex-shrink: 0;
+      background: #f9fafb;
+      border: none;
+      border-left: 1px solid var(--line);
+      border-radius: 0 12px 12px 0;
+      cursor: pointer;
+      color: #666;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .supp-toggle-btn:hover {
+      background: #eee;
+    }
+
+    #suppAutocomplete {
+      top: 100%;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <!-- ✅ Entire captured area for PDF (header INCLUDED) -->
+    <div id="printRoot">
+      <div class="plan-summary-header">
+        <div class="plan-summary-left">
+          <h1>Treatment Plan Summary</h1>
+          <p class="sub">Well Adjusted Chiropractic</p>
+        </div>
+        <div class="plan-summary-right">
+          <div><strong>Today’s Date:</strong> <span id="headerTodayText"></span></div>
+          <div>Pricing updated: January 2026</div>
+        </div>
+      </div>
+
+      <div id="content">
+        <div class="grid">
+
+          <!-- LEFT: Plan Builder -->
+          <section id="treatment-plans">
+            <h2>
+              <span><strong>Plan Builder</strong></span>
+              <span class="pill">Select a plan and review details</span>
+            </h2>
+
+            <div class="row">
+              <div>
+                <label for="patientName">Patient Name</label>
+                <input id="patientName" name="patientName" placeholder="Enter Patient's Name" type="text" />
+              </div>
+              <div>
+                <label for="patientEmail">Email</label>
+                <input id="patientEmail" name="patientEmail" type="email" placeholder="email@example.com" />
+              </div>
+              <div>
+                <label for="patientPhone">Phone</label>
+                <input id="patientPhone" name="patientPhone" type="tel" placeholder="(000) 000-0000" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="chiefComplaint">Chief Complaint</label>
+                <input id="chiefComplaint" type="text" placeholder="Primary reason for visit" />
+              </div>
+              <div>
+                <label for="bilateralScales">Bilateral Scales</label>
+                <input id="bilateralScales" type="text" placeholder="L / R values" />
+              </div>
+              <div>
+                <label for="spinalDegeneration">Spinal Degeneration Phase</label>
+                <select id="spinalDegeneration">
+                  <option value="">None / Normal</option>
+                  <option value="Phase 1">Phase 1</option>
+                  <option value="Phase 1.5">Phase 1.5</option>
+                  <option value="Phase 2">Phase 2</option>
+                  <option value="Phase 2.5">Phase 2.5</option>
+                  <option value="Phase 3">Phase 3</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <label>Spinal Orthotic (Select and specify placement)</label>
+              <div id="spinalOrthoticGroup" style="display:flex; flex-direction:row; gap:14px; flex-wrap:wrap;">
+                <div class="orthotic-item">
+                  <label style="font-weight:normal; display:flex; align-items:center; gap:6px; min-width:80px;">
+                    <input type="checkbox" name="spinalOrthotic" value="Cervical" onchange="toggleOrthoticSelects()">
+                    Cervical
+                  </label>
+                  <select id="pos_Cervical" class="orthotic-pos-select">
+                    <option value="">Placement</option>
+                    <option value="Upper">Upper</option>
+                    <option value="Middle">Middle</option>
+                    <option value="Lower">Lower</option>
+                  </select>
+                </div>
+
+                <div class="orthotic-item">
+                  <label style="font-weight:normal; display:flex; align-items:center; gap:6px; min-width:80px;">
+                    <input type="checkbox" name="spinalOrthotic" value="Thoracic" onchange="toggleOrthoticSelects()">
+                    Thoracic
+                  </label>
+                  <select id="pos_Thoracic" class="orthotic-pos-select">
+                    <option value="">Placement</option>
+                    <option value="Upper">Upper</option>
+                    <option value="Middle">Middle</option>
+                    <option value="Lower">Lower</option>
+                  </select>
+                </div>
+
+                <div class="orthotic-item">
+                  <label style="font-weight:normal; display:flex; align-items:center; gap:6px; min-width:80px;">
+                    <input type="checkbox" name="spinalOrthotic" value="Lumbar" onchange="toggleOrthoticSelects()">
+                    Lumbar
+                  </label>
+                  <select id="pos_Lumbar" class="orthotic-pos-select">
+                    <option value="">Placement</option>
+                    <option value="Upper">Upper</option>
+                    <option value="Middle">Middle</option>
+                    <option value="Lower">Lower</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="providerSelect">Provider</label>
+                <select id="providerSelect" name="providerSelect">
+                  <option value="">Select Provider</option>
+                </select>
+              </div>
+              <div>
+                <label for="todayDate">Today’s Date</label>
+                <input id="todayDate" name="todayDate" type="date" />
+              </div>
+              <div>
+                <label for="locationSelect">Treatment Location</label>
+                <select id="locationSelect" name="locationSelect">
+                  <option value="">Select Treatment Location</option>
+                  <option value="Loveland">Loveland, CO</option>
+                  <option value="Fort Collins">Fort Collins, CO</option>
+                  <option value="Erie">Erie, CO</option>
+                  <option value="Greeley">Greeley, CO</option>
+                  <option value="Arlington">Arlington, TX</option>
+                </select>
+              </div>
+            </div>
+
+            <label for="treatmentOptions">Treatment Plan</label>
+            <select id="treatmentOptions">
+              <option value="">Choose a Treatment Plan</option>
+
+              <!-- 16 Week Plans -->
+              <option value="40_adjustments_4x">16 Weeks - 40 CHIROPRACTIC ADJUSTMENTS (Starting 4x/wk)</option>
+              <option value="40_adjustments_family_4x">16 Weeks - 40 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 4x/wk)
+              </option>
+              <option value="38_adjustments_3x">16 Weeks - 38 CHIROPRACTIC ADJUSTMENTS (Starting 3x/wk)</option>
+              <option value="38_adjustments_family_3x">16 Weeks - 38 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 3x/wk)
+              </option>
+              <option value="32_adjustments_2x">16 Weeks - 32 CHIROPRACTIC ADJUSTMENTS (Starting 2x/wk)</option>
+              <option value="32_adjustments_family_2x">16 Weeks - 32 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 2x/wk)
+              </option>
+
+              <!-- 26 Week Plans -->
+              <option value="46_adjustments_4x">26 Weeks - 46 CHIROPRACTIC ADJUSTMENTS (Starting 4x/wk)</option>
+              <option value="46_adjustments_family_4x">26 Weeks - 46 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 4x/wk)
+              </option>
+              <option value="44_adjustments_3x">26 Weeks - 44 CHIROPRACTIC ADJUSTMENTS (Starting 3x/wk)</option>
+              <option value="44_adjustments_family_3x">26 Weeks - 44 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 3x/wk)
+              </option>
+              <option value="42_adjustments_2x">26 Weeks - 42 CHIROPRACTIC ADJUSTMENTS (Starting 2x/wk)</option>
+              <option value="42_adjustments_family_2x">26 Weeks - 42 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 2x/wk)
+              </option>
+
+              <!-- Ongoing / Short-Term -->
+              <option value="initial_weekly_adjustments">INITIAL WEEKLY ADJUSTMENTS</option>
+              <option value="initial_weekly_adjustments_family">INITIAL WEEKLY ADJUSTMENTS FAMILY</option>
+              <option value="weekly_adjustments">WEEKLY ADJUSTMENTS</option>
+              <option value="weekly_adjustments_family">WEEKLY ADJUSTMENTS FAMILY</option>
+              <option value="bi_weekly_adjustments">BI-WEEKLY ADJUSTMENTS</option>
+              <option value="monthly_adjustments">MONTHLY ADJUSTMENTS</option>
+              <option value="10_visit_adjustments">10-VISIT CHIROPRACTIC ADJUSTMENTS</option>
+
+              <option value="spinal_decompression">SPINAL DECOMPRESSION</option>
+            </select>
+
+            <div id="planDetails"></div>
+
+            <div id="selectedAddonsList" class="selected-addons-list" style="display:none;"></div>
+
+            <div class="financial-info">
+              <p id="totalCost">Total Plan Cost:</p>
+
+              <div id="downPaymentWrap" class="downpay-wrap">
+                <div class="downpay-row">
+                  <div>
+                    <label for="downPaymentInput">Down Payment</label>
+                    <input id="downPaymentInput" type="number" min="0" step="50" value="1000" />
+                    <div class="tinyhelp">Default is $1,000. Applies only to fixed plans.</div>
+                  </div>
+                </div>
+              </div>
+
+              <p id="downPaymentLine" style="display:none;">Down Payment:</p>
+              <p id="remainingBalanceLine" style="display:none;">Remaining Balance:</p>
+              <p id="additionalCost"></p>
+              <p id="monthlyPayments">Adjusted Monthly Payment:</p>
+            </div>
+
+            <!-- Alt Pricing OUTPUT renders here (internal-only; never in PDF) -->
+            <div id="altPricingSection" class="hideAltForPdf" style="display:none; margin-top:14px;"></div>
+          </section>
+
+          <!-- RIGHT: Add-ons + Notes -->
+          <div>
+            <section id="additional-recommendation">
+              <h2><strong>Additional Recommendations</strong></h2>
+              <div class="helper">
+                Select any add-ons to include.
+              </div>
+
+              <div style="margin-top:10px;">
+                <!-- "Include Additional Costs" checkbox removed -->
+              </div>
+
+              <!-- INTERNAL ONLY (checkbox stays here); output renders under Plan Builder -->
+              <div class="hideAltForPdf" style="margin-top:10px;">
+                <input type="checkbox" id="showAltPricing" onchange="renderAltPricing()">
+                <label for="showAltPricing" style="display:inline; margin-left:6px;">Show Alt Pricing</label>
+              </div>
+
+              <div id="addonCheckboxPanel"></div>
+              <div id="dropdownContainer"></div>
+            </section>
+
+            <section id="supplements-section">
+              <h2><strong>Supplements</strong></h2>
+              <div class="supp-search-wrap">
+                <input type="text" id="suppSearchInput" placeholder="Search supplements..." autocomplete="off" />
+                <button type="button" id="suppDropdownToggle" class="supp-toggle-btn">&#9660;</button>
+                <div class="supp-autocomplete" id="suppAutocomplete"></div>
+              </div>
+              <div class="supp-selected-list" id="suppSelectedList"></div>
+            </section>
+
+            <section id="optional-notes">
+              <h2><strong>Optional Notes</strong></h2>
+              <textarea id="notesInput" placeholder="Optional notes to appear on the PDF/printout..."></textarea>
+              <div id="notesPrint" class="notes-print"></div>
+            </section>
+          </div>
+
+        </div>
+
+        <!-- Office Policies -->
+        <section id="office-policies">
+          <h2><strong>Office Policies</strong></h2>
+          <br>
+          <p><strong>FINANCIAL</strong> - It is your payment that allows us to continue providing high levels of
+            professional care, maintain our facility, and to compensate our team. If for any reason you cannot keep your
+            financial agreement, inform us immediately to avoid any misunderstanding. We will make every attempt to make
+            affordable arrangements.</p>
+          <br>
+          <p><strong>CARE PLAN</strong> - The doctor has designed a specific course of action to allow proper care.
+            Missed appointments should be made up within 24 hours and MUST be made up within 7 days to protect your
+            corrective rhythm. Cancellations of any treatment plans must be discussed directly with your doctor by
+            either phone or in office. It is our policy, that we do not take cancellations of treatment plans over text.
+          </p>
+          <br>
+          <p><strong>FAMILY</strong> - We are absolutely committed to your family's health. The Well Adjusted
+            Chiropractic Team recognizes that the children are the future. Because of this commitment, it is our highest
+            priority that all individuals in our practice have their children checked in our office. This spinal and
+            nerve system checkup will be done for $50 for any immediate family member within 14 business days of your
+            commitment to care.</p>
+          <br>
+          <p><strong>REFERRALS</strong> - The greatest honor a patient can give the doctor is the referral of their
+            family or loved one. We promise to give them the same attention, care, and quality service that you receive.
+            Thank you in advance!</p>
+          <br>
+          <p><strong>CANCELLATIONS</strong> - We are committed to our mission to provide remarkable chiropractic care to
+            everyone in our community. In order for this to happen, we ask that our patients give us at least a 24 hour
+            notice for any cancellations. We understand life happens and we will do all we can to help reschedule in
+            those situations. There will be a $50 cancellation fee if we do not receive a 24 hour notice.</p>
+          <br>
+          <p><strong>MISSED APPOINTMENT POLICY</strong> - Adherence to the prescribed care plan, including the schedule
+            of visits, is crucial for your treatment success. Your commitment is reflected in maintaining the
+            recommended rhythm of adjustments, which is essential for positive outcomes. Should you need to reschedule
+            an appt, we’ll strive to rebook it for the same or next day. Missed appts must be compensated for within the
+            same or following week to ensure you receive the recommended number of weekly adjustments. Failure to make
+            up 3 missed appts will be taken as a sign of decreased commitment, leading to a pause of your care.</p>
+          <br>
+          <p><strong>BETTER RESULTS FASTER WORKSHOP</strong> - As part of our commitment to enhancing your health and
+            treatment outcomes, we require all new patients to attend our ‘Better Results Faster’ workshop. This
+            informative session is designed to expedite your recovery by equipping you with essential knowledge on
+            optimal health practices, chiropractic care benefits, and patient compliance. We offer these workshops
+            weekly and will make every effort to accommodate your schedule, ensuring you can join at your earliest
+            convenience.</p>
+          <br><br>
+          <p><strong>Our Team is dedicated to your health and success, and we count on your cooperation to achieve the
+              best results. Thank you for your cooperation - we’re committed to your health journey!</strong></p>
+        </section>
+
+      </div><!-- /#content -->
+    </div><!-- /#printRoot -->
+
+    <!-- Signature + Buttons -->
+    <div class="signature-area">
+      <label for="signatureCanvas"><strong>Patient's Signature:</strong></label>
+      <canvas id="signatureCanvas"
+        style="border: 1px solid #111; width: 100%; max-width: 680px; height: 110px;"></canvas>
+
+      <div class="signature-actions">
+        <button type="button" id="clearSignature">Clear Signature</button>
+        <button class="btn-primary" type="button" onclick="generatePDF()">Print / Save PDF</button>
+        <button class="btn-secondary" type="button" onclick="resetForm()">Reset</button>
+        <button class="btn-tertiary" type="button" onclick="copySummarySoap()">Copy Summary (SOAP)</button>
+      </div>
+    </div>
+
+    <footer>
+      <p><strong>For more information, please visit www.staywelladjusted.com</strong></p>
+    </footer>
+
+  </div><!-- /.wrap -->
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+    /* =============================================================================
+       🔴 PRICING CONTROL CENTER – EDIT PRICES/LISTS ONLY INSIDE THIS SECTION 🔴
+    ============================================================================= */
+
+    const PRICES = {
+      adjustment: {
+        family: 50,   // family with plan
+        plan: 60,     // with plan
+        payGo: 70     // pay-as-you-go / normal
+      },
+      progressExam: {
+        withPlan: 35,
+        normal: 50
+      },
+      xray: 175,
+
+      decompression: {
+        sdVisits: 26,
+        sdPerVisit: 130,
+        chiroVisits: 24,
+        chiroPerVisit: 70,
+        cashPrice: 4500,
+        cashPayments: 4,
+        financeMonths: 12,
+        financeLabel: "12 Monthly Payment Plan (Approved Outside Financing) - Approximately"
+      },
+
+      // Additional Recommendations
+      addOns: [
+        { key: "footOrthotic", label: "Custom Foot Orthotic", price: 360 },
+        { key: "correctiveExercise", label: "Customized Corrective Exercise Plan", price: 40 },
+        { key: "sd5", label: "Spinal Decompression (5 Visits)", price: 325 },
+        { key: "sd10", label: "Spinal Decompression (10 Visits)", price: 650 },
+        { key: "pemf10", label: "10 PEMF Therapy", price: 450 },
+        { key: "softwave10", label: "10 SoftWave™ Therapy", price: 1200 },
+        { key: "handMassage10", label: "Therapeutic Hand Massage (10 Visits) - 15 min", price: 250 },
+        { key: "chairMassage10", label: "Therapeutic Chair Massage (10 Visits) - 15 min", price: 150 },
+        { key: "pillowise_purple", label: "Pillowise - Purple", price: 146 },
+        { key: "pillowise_pink", label: "Pillowise - Pink", price: 146 },
+        { key: "pillowise_green", label: "Pillowise - Green", price: 146 },
+        { key: "pillowise_blue", label: "Pillowise - Blue", price: 146 },
+        { key: "pillowise_red", label: "Pillowise - Red", price: 146 },
+        { key: "pillowise_orange", label: "Pillowise - Orange", price: 146 },
+        { key: "pillowise_xl", label: "Pillowise XL", price: 166 },
+        { key: "pillowise_xl_travel", label: "Pillowise - XL Travel Pillow", price: 146 },
+        { key: "pillowise_travel_purple", label: "Pillowise - Travel Pillow, Purple", price: 130 },
+        { key: "pillowise_travel_green", label: "Pillowise - Travel Pillow, Green", price: 130 },
+        { key: "pillowise_travel_blue", label: "Pillowise - Travel Pillow, Blue", price: 130 },
+        { key: "pillowise_travel_red", label: "Pillowise - Travel Pillow, Red", price: 130 },
+        { key: "pillowise_travel_pink", label: "Pillowise - Travel Pillow, Pink", price: 130 },
+        { key: "pillowise_travel_orange", label: "Pillowise - Travel Pillow, Orange", price: 130 }
+      ]
+    };
+
+    /* ===== ALT PRICING CONTROL CENTER (INTERNAL ONLY, NEVER PRINTS) =====
+       Itemized services shown per visit. This is intentionally NOT the patient-facing cash plan.
+    */
+    const ALT_PRICES = {
+      chiroVisit: {
+        adjustment5Regions: 100,   // 98942 (display as "Chiropractic adjustment (5 regions)")
+        extremity: 56,             // 98943 (display as "Extremity adjustment")
+        massageOrTraction: 30,     // single combined line: massage OR mechanical traction
+        pemf: 45,                  // E0761 (use PEMF as higher priced option)
+        hotColdPack: 21            // 97010
+      },
+      decompressionVisit: {
+        decompression: 130,        // S9090
+        adjustment5Regions: 100,
+        extremity: 56,
+        pemf: 45,
+        hotColdPack: 21
+      },
+      deviceOneTime: {
+        gravityDevice: 60          // E0941 (one-time, not per visit)
+      },
+      softwave: {
+        perVisit: 180              // per visit (not package)
+      },
+      progressExam: {
+        everyNVisits: 12,
+        price: 185                 // 99213
+      },
+      xrays: {
+        cervical: 100,             // 72040
+        thoracic: 100,             // 72070
+        lumbar: 100                // 72114 (per your correction)
+      },
+      correctiveExerciseOneTime: 65
+    };
+
+    // Providers for the Provider dropdown (safe to add/remove lines)
+    const PROVIDERS = [
+      "William Stults, D.C.",
+      "Brittnye Potter, D.C.",
+      "Cody Eischeid, D.C.",
+      "Elliot Alexander, D.C.",
+      "Kody Windecker, D.C.",
+      "Nate Potter, D.C.",
+      "Shane Countryman, D.C.",
+      "David Hughes, D.C.",
+      "Michael Hughes, D.C."
+    ];
+
+    /* =============================================================================
+       🔴 END PRICING CONTROL CENTER – DO NOT EDIT BELOW THIS LINE 🔴
+    ============================================================================= */
+
+    // ============================================================
+    // Supplements Data (from Pricing List Suppliments.csv)
+    // ============================================================
+    const SUPPLEMENTS_DATA = [
+      { name: "Para Kit", retail_price: 283.75 },
+      { name: "Para 4", retail_price: 59.95 },
+      { name: "Para Kit - Employee", retail_price: 173 },
+      { name: "Drainage Activator", retail_price: 60 },
+      { name: "Adrenal Complex - 40T", retail_price: 23 },
+      { name: "Kava Forte 40t", retail_price: 52 },
+      { name: "Thyroid Complex - 120c", retail_price: 86.5 },
+      { name: "Bone Complex", retail_price: 40 },
+      { name: "Z-Binder 60 ct", retail_price: 33.9 },
+      { name: "Core Restore Chocolate 7-day", retail_price: 118.9 },
+      { name: "Cerenity PM 60 ct", retail_price: 39.9 },
+      { name: "Collagen 30 servings", retail_price: 68.7 },
+      { name: "K-Force 60 ct", retail_price: 45.6 },
+      { name: "Mitocore 60 ct", retail_price: 37.9 },
+      { name: "Natural D-Hist 40 ct", retail_price: 24.5 },
+      { name: "Nuadapt 60 ct", retail_price: 58.3 },
+      { name: "Ortho Biotic 100 30ct", retail_price: 70.9 },
+      { name: "Reacted Magnesium 60ct", retail_price: 19.2 },
+      { name: "Soft Tissue Support Pack 9ct", retail_price: 42.5 },
+      { name: "Truadapt 60ct", retail_price: 40.8 },
+      { name: "Turiva 60ct", retail_price: 52.4 },
+      { name: "Cardio Flow (Vascuzyme) 120ct", retail_price: 59.5 },
+      { name: "SBI Protect Capsules 120ct", retail_price: 79.9 },
+      { name: "Ortho Biotic Capsules 30ct", retail_price: 37.9 },
+      { name: "GlutaShield Chocolate 30 serv", retail_price: 48.9 },
+      { name: "GlutaShield Vanilla 30 serv", retail_price: 48.9 },
+      { name: "BioPC Pro 30 serv", retail_price: 53.6 },
+      { name: "Chondro-Flx 90ct", retail_price: 57.5 },
+      { name: "InflammaCORE Vanilla Chai Pea Protein 14 servings", retail_price: 83.2 },
+      { name: "Reacted Zinc", retail_price: 19.4 },
+      { name: "CDG EstroDIM 60ct", retail_price: 81.7 },
+      { name: "Ortho Biotic Women's", retail_price: 39.8 },
+      { name: "Reacted Iron", retail_price: 17.2 },
+      { name: "MycoActive", retail_price: 32.8 },
+      { name: "Orthomega 820 120ct", retail_price: 61.9 },
+      { name: "Natural D-Hist 40ct", retail_price: 24.5 },
+      { name: "Ortho Digestzyme 90ct", retail_price: 34.6 },
+      { name: "Methyl CpG", retail_price: 44 },
+      { name: "Vitamin K2 with D3 30ct", retail_price: 19.2 },
+      { name: "OsteoBase 90 ct", retail_price: 25.5 },
+      { name: "Sinatrol", retail_price: 38.6 },
+      { name: "Adren-All", retail_price: 33.3 },
+      { name: "DHEA 25mg", retail_price: 22.4 },
+      { name: "Reacted Magnesium 120ct", retail_price: 33.6 },
+      { name: "Strontium 60 ct", retail_price: 24.4 },
+      { name: "Traumeric 90 ct", retail_price: 66.3 },
+      { name: "ChondroFlx 180ct", retail_price: 100.7 },
+      { name: "EstroDIM", retail_price: 28.9 },
+      { name: "Bergamot BPF", retail_price: 49.4 },
+      { name: "Reacted Magnesium & Potassium", retail_price: 31.2 },
+      { name: "Reacted Magnesium Powder", retail_price: 39 },
+      { name: "ViraKid", retail_price: 36.8 },
+      { name: "Adapten-All 120 ct", retail_price: 58.3 },
+      { name: "Probiotic 225", retail_price: 77.7 },
+      { name: "C-Flav", retail_price: 31.1 },
+      { name: "Orthomega 820 60ct", retail_price: 37.4 },
+      { name: "Ortho Spore IG", retail_price: 59.9 },
+      { name: "TruAdapt Plus 60ct", retail_price: 40.8 },
+      { name: "TruAdapt 120ct", retail_price: 71.4 },
+      { name: "OrthoMune", retail_price: 49.8 },
+      { name: "Indigo Greens Caps 180ct", retail_price: 73.7 },
+      { name: "Prostatrol Forte 60ct", retail_price: 51.1 },
+      { name: "Methyl B12", retail_price: 32 },
+      { name: "Cystistatin 60ct", retail_price: 51.1 },
+      { name: "Cardio Flow (Vascuzyme) 240ct", retail_price: 103.9 },
+      { name: "Viracid 60ct", retail_price: 41.7 },
+      { name: "OsteoPrev", retail_price: 65.9 },
+      { name: "Cerenity", retail_price: 55.3 },
+      { name: "CereVive 60ct", retail_price: 41.9 },
+      { name: "Reacted Magnesium 180ct", retail_price: 45.9 },
+      { name: "CopaCalm 2fl oz", retail_price: 32.8 },
+      { name: "Mitocore 120ct", retail_price: 66.4 },
+      { name: "Alpha Base Caps w/o Iron 120ct", retail_price: 31.9 },
+      { name: "Candicid Forte 180t", retail_price: 71.3 },
+      { name: "Digestzyme-V 90ct", retail_price: 40.8 },
+      { name: "Diaxinol 60ct", retail_price: 53.6 },
+      { name: "Mag Threonate 60ct", retail_price: 59.8 },
+      { name: "Rhubestryn", retail_price: 38.4 },
+      { name: "CoQ-10", retail_price: 36.3 },
+      { name: "Cardio B", retail_price: 30.89 },
+      { name: "Paracid Forte", retail_price: 72.8 },
+      { name: "Intestin-ol", retail_price: 61.7 },
+      { name: "Turiva", retail_price: 52.4 },
+      { name: "Z-Binder", retail_price: 33.9 },
+      { name: "Plant Sterols", retail_price: 33.5 },
+      { name: "HiPhenolic", retail_price: 46.9 },
+      { name: "Liquid Vitamin D3 with K2", retail_price: 36.6 },
+      { name: "Ortho Cleanse", retail_price: 294 },
+      { name: "D-Hist 120 cap", retail_price: 48.8 },
+      { name: "Adapten-All 60CT", retail_price: 33.2 },
+      { name: "A-C Carbamide - 270C", retail_price: 70 },
+      { name: "A-C Carbamide - 90C", retail_price: 23 },
+      { name: "Adrenal (Dessicated) - 90T", retail_price: 18 },
+      { name: "A-F Betafood - 180T", retail_price: 28 },
+      { name: "A-F Betafood - 360T", retail_price: 52 },
+      { name: "Albaplex - 150C", retail_price: 38 },
+      { name: "Albaplex - 90C", retail_price: 25.5 },
+      { name: "Allerplex - 150C", retail_price: 33.5 },
+      { name: "Antronex - 180T", retail_price: 28 },
+      { name: "Antronex - 330T", retail_price: 47.5 },
+      { name: "Arginex - 90T", retail_price: 33 },
+      { name: "Betacol - 90C", retail_price: 28 },
+      { name: "Betafood - 90T", retail_price: 18.5 },
+      { name: "Calcifood - 100W", retail_price: 32 },
+      { name: "Calcifood Powder - 10 oz", retail_price: 67 },
+      { name: "Calcium Lactate - 90T", retail_price: 21 },
+      { name: "Cardio Plus - 90T", retail_price: 18.5 },
+      { name: "Cardiotrophin PMG - 90T", retail_price: 25 },
+      { name: "Catalyn - 360T", retail_price: 55 },
+      { name: "Catalyn - 90T", retail_price: 15.5 },
+      { name: "Cataplex A - 180T", retail_price: 32.5 },
+      { name: "Cataplex A-C-P - 180T", retail_price: 26 },
+      { name: "Cataplex B - 180 T", retail_price: 25.5 },
+      { name: "Cataplex B - 360T", retail_price: 47 },
+      { name: "Cataplex B12 - 90T", retail_price: 21 },
+      { name: "Cataplex C - 360T", retail_price: 59.5 },
+      { name: "Cataplex D - 360T", retail_price: 43.5 },
+      { name: "Cataplex E - 90T", retail_price: 21.5 },
+      { name: "Cataplex E2 - 360T", retail_price: 64.5 },
+      { name: "Cataplex F Tablets - 360T", retail_price: 55 },
+      { name: "Cataplex F Tablets - 90T", retail_price: 15.5 },
+      { name: "Chlorophyll Complex - 60P", retail_price: 28 },
+      { name: "Cholacol - 90T", retail_price: 17.5 },
+      { name: "Choline - 90T", retail_price: 18 },
+      { name: "Collinsonia Root - 150C", retail_price: 33 },
+      { name: "Congaplex - 150C", retail_price: 38 },
+      { name: "Congaplex Chewable - 90T", retail_price: 16.5 },
+      { name: "Cyruta - 90T", retail_price: 18.5 },
+      { name: "Cyruta Plus - 360T", retail_price: 57.5 },
+      { name: "Cyruta Plus - 90T", retail_price: 16 },
+      { name: "Diaplex - 150C", retail_price: 48.5 },
+      { name: "Drenamin - 270T", retail_price: 120 },
+      { name: "Drenamin - 90T", retail_price: 45.5 },
+      { name: "Drenatrophin PMG - 90T", retail_price: 25 },
+      { name: "Enzycore - 150C", retail_price: 40 },
+      { name: "E-Z Mg.", retail_price: 58.5 },
+      { name: "Ferrofood - 150C", retail_price: 38.5 },
+      { name: "Ferrofood - 40C", retail_price: 11.5 },
+      { name: "Folic Acid B12 - 180T", retail_price: 25 },
+      { name: "Gall Bladder Matters Book", retail_price: 20 },
+      { name: "Gastrex - 90C", retail_price: 28.5 },
+      { name: "Gastro-Fiber - 150C", retail_price: 26 },
+      { name: "Glucosamine Synergy - 90C", retail_price: 38.5 },
+      { name: "Hepatrophin PMG - 90T", retail_price: 22.5 },
+      { name: "Immuplex - 150C", retail_price: 55.5 },
+      { name: "Immuplex - 40C", retail_price: 15 },
+      { name: "Immuplex - 90C", retail_price: 35 },
+      { name: "Eyeplex - 150C", retail_price: 37 },
+      { name: "Lact-Enz - 90C", retail_price: 34 },
+      { name: "Ligaplex I - 150C", retail_price: 38 },
+      { name: "Ligaplex I - 40C", retail_price: 10 },
+      { name: "Ligaplex II - 150C", retail_price: 36 },
+      { name: "Ligaplex II - 40C", retail_price: 10 },
+      { name: "Livaplex - 90C", retail_price: 28.5 },
+      { name: "Magnesium Lactate - 90C", retail_price: 34.5 },
+      { name: "Min-Tran - 360T", retail_price: 50.5 },
+      { name: "Neuroplex - 90C", retail_price: 52.5 },
+      { name: "Neurotrophin PMG - 90T", retail_price: 23 },
+      { name: "Organically Bound Minerals - 180T", retail_price: 36 },
+      { name: "Pancreatrophin PMG - 90T", retail_price: 27.5 },
+      { name: "Parotid PMG - 90T", retail_price: 27.5 },
+      { name: "Phosfood Liquid - 2 fl. oz", retail_price: 24 },
+      { name: "Pituitrophin PMG -90T", retail_price: 38 },
+      { name: "Pneumotrophin PMG - 90T", retail_price: 24 },
+      { name: "Prolamine Iodine - 90T", retail_price: 12.5 },
+      { name: "Prostate PMG - 90T", retail_price: 37 },
+      { name: "ProSynbiotic - 90C", retail_price: 45 },
+      { name: "Purification Kit with Vanilla and Gastro-Fiber", retail_price: 264 },
+      { name: "Purification Product Kit with SP Complete and Whole Food Fiber - 1 kit", retail_price: 283 },
+      { name: "Renafood - 180T", retail_price: 36 },
+      { name: "Renatrophin PMG - 90T", retail_price: 26 },
+      { name: "Ribonucleic Acid (RNA) - 90T", retail_price: 26 },
+      { name: "Rumaplex - 40C", retail_price: 22 },
+      { name: "Soybean Lecithin - 240P", retail_price: 39 },
+      { name: "SP Cleanse - 150C", retail_price: 27 },
+      { name: "Spleen (Desiccated) - 90T", retail_price: 23 },
+      { name: "Spleen PMG - 90T", retail_price: 21.5 },
+      { name: "Symplex F - 360T", retail_price: 70 },
+      { name: "Symplex F - 90T", retail_price: 19.5 },
+      { name: "Symplex M - 360T", retail_price: 72 },
+      { name: "Thymex - 90T", retail_price: 21.5 },
+      { name: "Thytrophin PMG - 360T", retail_price: 75 },
+      { name: "Thytrophin PMG - 90T", retail_price: 23.5 },
+      { name: "Trace Minerals B12 - 90T", retail_price: 18.5 },
+      { name: "Tuna Omega-3 Chewable - 120P", retail_price: 29 },
+      { name: "Tuna Omega-3 Oil - 120P", retail_price: 27.5 },
+      { name: "Turmeric Forte 60T", retail_price: 42.5 },
+      { name: "Utrophin PMG - 90T", retail_price: 23 },
+      { name: "Whole Food Fiber 7 oz", retail_price: 32.5 },
+      { name: "Zymex Capsules 150c", retail_price: 37 },
+      { name: "Zymex II - 90C", retail_price: 37 },
+      { name: "Zypan - 90T", retail_price: 18 },
+      { name: "10-Day Healthy Inflammation Response Kit With SP Complete", retail_price: 152.5 },
+      { name: "Ostarplex 90c", retail_price: 37 },
+      { name: "Calcium Lactate 360 ct", retail_price: 45.5 },
+      { name: "Cataplex D 180 Ct", retail_price: 23.5 },
+      { name: "Prolamine Iodine Plus", retail_price: 18.5 },
+      { name: "Cataplex B - Core", retail_price: 42.5 },
+      { name: "Bilberry 6000mg", retail_price: 39.5 },
+      { name: "Wormwood Complex", retail_price: 89 },
+      { name: "Daily Fundamentals - Adrenal Health", retail_price: 68 },
+      { name: "Catalyn Chewable 90c", retail_price: 19 },
+      { name: "Cod Liver Oil 180c", retail_price: 48.5 },
+      { name: "Daily Fundamentals Bone Health", retail_price: 132.03 },
+      { name: "Super-EFF 90c", retail_price: 30 },
+      { name: "Lactic Acid Yeast-100 Wafers", retail_price: 24 },
+      { name: "GI Adsorb 112 caps", retail_price: 59 },
+      { name: "Calcium Lactate 180 ct", retail_price: 28 },
+      { name: "Daily Fundamentals - General Health", retail_price: 72 },
+      { name: "Evening Primrose Oil", retail_price: 50.5 },
+      { name: "Hipep", retail_price: 47 },
+      { name: "Milk Thistle Forte", retail_price: 31.5 },
+      { name: "Betafood - 180T", retail_price: 35 },
+      { name: "Cataplex B 360T- GF", retail_price: 49 },
+      { name: "Cataplex C 90ct", retail_price: 16.5 },
+      { name: "Cataplex E 90ct", retail_price: 22 },
+      { name: "Turmeric 1:1 6.8fl oz", retail_price: 69.5 },
+      { name: "Ashwagandha Forte 60ct", retail_price: 33 },
+      { name: "St Johns Wort 60ct", retail_price: 35 },
+      { name: "Multizyme 90ct", retail_price: 29 },
+      { name: "Chaste Tree 120 count", retail_price: 59 },
+      { name: "Wild Yam Complex 40T", retail_price: 45 },
+      { name: "Hemp Oil Complex 60 softgels", retail_price: 79 },
+      { name: "Dermatrophin PMG", retail_price: 24 },
+      { name: "Min-Chex 90ct", retail_price: 30 },
+      { name: "Spanish Black Radish 30ct", retail_price: 13 },
+      { name: "Chaste Tree 40ct", retail_price: 25 },
+      { name: "Ovex 90ct", retail_price: 41 },
+      { name: "Chromium", retail_price: 33 },
+      { name: "Wild Yam Complex 120T", retail_price: 124 },
+      { name: "Catlaplex E 90CT", retail_price: 21.5 },
+      { name: "Cataplex E 360CT", retail_price: 77 },
+      { name: "Cataplex B2 90 ct", retail_price: 15 },
+      { name: "Wormwood 1:5", retail_price: 68 },
+      { name: "Herbal Throat Spray", retail_price: 26 }
+    ];
+
+    // Selected supplements state
+    let selectedSupplements = [];
+
+    function getSelectedSupplementsCost() {
+      return selectedSupplements.reduce((sum, s) => sum + (s.retail_price || 0), 0);
+    }
+
+    function getSelectedSupplementsList() {
+      return selectedSupplements.map(s => ({ name: s.name, price: s.retail_price }));
+    }
+
+    function renderSelectedSupplements() {
+      const list = document.getElementById("suppSelectedList");
+      if (!list) return;
+      list.innerHTML = "";
+      selectedSupplements.forEach((s, idx) => {
+        const item = document.createElement("div");
+        item.className = "supp-selected-item";
+        item.innerHTML = `
+          <span>${s.name} — <strong>$${s.retail_price}</strong></span>
+          <button class="supp-remove" data-idx="${idx}" title="Remove">✕</button>
+        `;
+        list.appendChild(item);
+      });
+      // Bind remove buttons
+      list.querySelectorAll(".supp-remove").forEach(btn => {
+        btn.addEventListener("click", function () {
+          const i = parseInt(this.dataset.idx);
+          selectedSupplements.splice(i, 1);
+          renderSelectedSupplements();
+          updateDetails();
+        });
+      });
+    }
+
+    function initSupplementsSearch() {
+      const input = document.getElementById("suppSearchInput");
+      const dropdown = document.getElementById("suppAutocomplete");
+      const toggle = document.getElementById("suppDropdownToggle");
+
+      if (!input || !dropdown) return;
+
+      let debounceTimer;
+      let activeIndex = -1;
+      let currentMatches = [];
+
+      function closeDropdown() {
+        dropdown.style.display = "none";
+        activeIndex = -1;
+      }
+
+      function updateActiveItem() {
+        const items = dropdown.querySelectorAll(".supp-autocomplete-item");
+        items.forEach((item, index) => {
+          if (index === activeIndex) {
+            item.style.background = "#eef1f6";
+            item.scrollIntoView({ block: "nearest" });
+          } else {
+            item.style.background = "";
+          }
+        });
+      }
+
+      function renderList(list) {
+        dropdown.innerHTML = "";
+        currentMatches = list;
+        activeIndex = -1;
+
+        if (!list.length) { closeDropdown(); return; }
+
+        list.forEach((s, index) => {
+          const item = document.createElement("div");
+          item.className = "supp-autocomplete-item";
+          item.innerHTML = `<span>${s.name}</span><strong>$${s.retail_price}</strong>`;
+
+          item.addEventListener("click", () => selectItem(s));
+
+          item.addEventListener("mouseenter", () => {
+            activeIndex = index;
+            updateActiveItem();
+          });
+
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = "block";
+        dropdown.scrollTop = 0;
+      }
+
+      function selectItem(s) {
+        selectedSupplements.push({ name: s.name, retail_price: s.retail_price });
+        renderSelectedSupplements();
+        updateDetails();
+        input.value = "";
+        closeDropdown();
+      }
+
+      // Input Event
+      input.addEventListener("input", function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          const q = this.value.toLowerCase().trim();
+
+          if (q.length < 2) { closeDropdown(); return; }
+
+          const matches = SUPPLEMENTS_DATA.filter(s =>
+            s.name.toLowerCase().includes(q)
+          ).slice(0, 15);
+
+          renderList(matches);
+        }, 250);
+      });
+
+      // Toggle Button
+      if (toggle) {
+        toggle.addEventListener("click", (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+
+          if (dropdown.style.display === "block") {
+            closeDropdown();
+          } else {
+            input.focus();
+            const q = input.value.toLowerCase().trim();
+            if (!q) {
+              renderList(SUPPLEMENTS_DATA);
+            } else {
+              input.dispatchEvent(new Event('input'));
+            }
+          }
+        });
+      }
+
+      // Keydown
+      input.addEventListener("keydown", function (e) {
+        if (dropdown.style.display === "none") {
+          if (e.key === "ArrowDown") {
+            renderList(SUPPLEMENTS_DATA);
+          }
+          return;
+        }
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          if (activeIndex < currentMatches.length - 1) activeIndex++;
+          updateActiveItem();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          if (activeIndex > 0) activeIndex--;
+          updateActiveItem();
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          if (activeIndex >= 0 && activeIndex < currentMatches.length) {
+            selectItem(currentMatches[activeIndex]);
+          }
+        } else if (e.key === "Escape") {
+          closeDropdown();
+        }
+      });
+
+      // Outside Click
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".supp-search-wrap")) {
+          closeDropdown();
+        }
+      });
+    }
+
+
+    // Derived decompression plan value (always stays correct if you change visit counts or rates)
+    function decompressionPlanValue() {
+      return (PRICES.decompression.sdVisits * PRICES.decompression.sdPerVisit) +
+        (PRICES.decompression.chiroVisits * PRICES.decompression.chiroPerVisit);
+    }
+
+    function populateProviders() {
+      const providerSelect = document.getElementById("providerSelect");
+      if (!providerSelect) return;
+
+      while (providerSelect.options.length > 1) providerSelect.remove(1);
+
+      PROVIDERS.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        providerSelect.appendChild(opt);
+      });
+    }
+
+    // ============================================================
+    // Plan definitions (NO hardcoded dollar amounts in math)
+    // ============================================================
+    const PLANS = {
+      "40_adjustments_4x": {
+        type: "fixed16",
+        name: "16 Weeks - 40 CHIROPRACTIC ADJUSTMENTS (Starting 4x/wk)",
+        adjustments: 40,
+        rateType: "plan",
+        adjustmentLineStyle: "plain",
+        scheduleLines: [
+          "4X Per Week For 2 Weeks = 8 Adjustments",
+          "3X Per Week For 4 Weeks = 12 Adjustments",
+          "2X Per Week For 10 Weeks = 20 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "discountedEach",
+        xrays: 1
+      },
+      "40_adjustments_family_4x": {
+        type: "fixed16",
+        name: "16 Weeks - 40 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 4x/wk)",
+        adjustments: 40,
+        rateType: "family",
+        adjustmentLineStyle: "plain",
+        familyDisplay: true,
+        scheduleLines: [
+          "4X Per Week For 2 Weeks = 8 Adjustments",
+          "3X Per Week For 4 Weeks = 12 Adjustments",
+          "2X Per Week For 10 Weeks = 20 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "discountedEach",
+        xrays: 1
+      },
+      "38_adjustments_3x": {
+        type: "fixed16",
+        name: "16 Weeks - 38 CHIROPRACTIC ADJUSTMENTS (Starting 3x/wk)",
+        adjustments: 38,
+        rateType: "plan",
+        adjustmentLineStyle: "withNormally",
+        scheduleLines: [
+          "3 X Per Week For 6 Weeks = 18 Adjustments",
+          "2 X Per Week For 10 Weeks = 20 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "38_adjustments_family_3x": {
+        type: "fixed16",
+        name: "16 Weeks - 38 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 3x/wk)",
+        adjustments: 38,
+        rateType: "family",
+        adjustmentLineStyle: "withNormally",
+        familyDisplay: true,
+        scheduleLines: [
+          "3 X Per Week For 6 Weeks = 18 Adjustments",
+          "2 X Per Week For 10 Weeks = 20 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "32_adjustments_2x": {
+        type: "fixed16",
+        name: "16 Weeks - 32 CHIROPRACTIC ADJUSTMENTS (Starting 2x/wk)",
+        adjustments: 32,
+        rateType: "plan",
+        adjustmentLineStyle: "withNormally",
+        scheduleLines: [
+          "2 X Per Week For 16 Weeks = 32 Adjustments"
+        ],
+        progressExams: 2,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "32_adjustments_family_2x": {
+        type: "fixed16",
+        name: "16 Weeks - 32 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 2x/wk)",
+        adjustments: 32,
+        rateType: "family",
+        adjustmentLineStyle: "withNormally",
+        familyDisplay: true,
+        scheduleLines: [
+          "2 X Per Week For 16 Weeks = 32 Adjustments"
+        ],
+        progressExams: 2,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+
+      "46_adjustments_4x": {
+        type: "fixed26",
+        name: "26 Weeks - 46 CHIROPRACTIC ADJUSTMENTS (Starting 4x/wk)",
+        adjustments: 46,
+        rateType: "plan",
+        adjustmentLineStyle: "withNormally",
+        scheduleLines: [
+          "4 X Per Week For 1 Week = 4 Adjustments",
+          "3 X Per Week For 2 Weeks = 6 Adjustments",
+          "2 X Per Week For 13 Weeks = 26 Adjustments",
+          "1 X Per Week For 10 Weeks = 10 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "46_adjustments_family_4x": {
+        type: "fixed26",
+        name: "26 Weeks - 46 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 4x/wk)",
+        adjustments: 46,
+        rateType: "family",
+        adjustmentLineStyle: "withNormally",
+        familyDisplay: true,
+        scheduleLines: [
+          "4 X Per Week For 1 Week = 4 Adjustments",
+          "3 X Per Week For 2 Weeks = 6 Adjustments",
+          "2 X Per Week For 13 Weeks = 26 Adjustments",
+          "1 X Per Week For 10 Weeks = 10 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "44_adjustments_3x": {
+        type: "fixed26",
+        name: "26 Weeks - 44 CHIROPRACTIC ADJUSTMENTS (Starting 3x/wk)",
+        adjustments: 44,
+        rateType: "plan",
+        adjustmentLineStyle: "withNormally",
+        scheduleLines: [
+          "3 X Per Week For 2 Weeks = 6 Adjustments",
+          "2 X Per Week For 14 Weeks = 28 Adjustments",
+          "1 X Per Week For 10 Weeks = 10 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "44_adjustments_family_3x": {
+        type: "fixed26",
+        name: "26 Weeks - 44 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 3x/wk)",
+        adjustments: 44,
+        rateType: "family",
+        adjustmentLineStyle: "withNormally",
+        familyDisplay: true,
+        scheduleLines: [
+          "3 X Per Week For 2 Weeks = 6 Adjustments",
+          "2 X Per Week For 14 Weeks = 28 Adjustments",
+          "1 X Per Week For 10 Weeks = 10 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "42_adjustments_2x": {
+        type: "fixed26",
+        name: "26 Weeks - 42 CHIROPRACTIC ADJUSTMENTS (Starting 2x/wk)",
+        adjustments: 42,
+        rateType: "plan",
+        adjustmentLineStyle: "withNormally",
+        scheduleLines: [
+          "2 X Per Week For 16 Weeks = 32 Adjustments",
+          "1 X Per Week For 10 Weeks = 10 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+      "42_adjustments_family_2x": {
+        type: "fixed26",
+        name: "26 Weeks - 42 CHIROPRACTIC ADJUSTMENTS FAMILY (Starting 2x/wk)",
+        adjustments: 42,
+        rateType: "family",
+        adjustmentLineStyle: "withNormally",
+        familyDisplay: true,
+        scheduleLines: [
+          "2 X Per Week For 16 Weeks = 32 Adjustments",
+          "1 X Per Week For 10 Weeks = 10 Adjustments"
+        ],
+        progressExams: 3,
+        examLineStyle: "onlyNormally",
+        xrays: 1
+      },
+
+      // Ongoing / Short-term
+      "initial_weekly_adjustments": {
+        type: "initialWeekly",
+        name: "Initial Weekly Adjustments",
+        rateType: "plan"
+      },
+      "initial_weekly_adjustments_family": {
+        type: "initialWeekly",
+        name: "Initial Weekly Adjustments Family",
+        rateType: "family",
+        familyDisplay: true
+      },
+      "weekly_adjustments": {
+        type: "weekly",
+        name: "Weekly Adjustments",
+        rateType: "plan"
+      },
+      "weekly_adjustments_family": {
+        type: "weekly",
+        name: "Weekly Adjustments Family",
+        rateType: "family",
+        familyDisplay: true
+      },
+      "bi_weekly_adjustments": {
+        type: "biweekly",
+        name: "Bi-Weekly Adjustments",
+        rateType: "plan"
+      },
+      "monthly_adjustments": {
+        type: "monthly",
+        name: "Monthly Adjustments",
+        rateType: "plan"
+      },
+      "10_visit_adjustments": {
+        type: "tenpack",
+        name: "10-Visit Chiropractic Adjustments",
+        rateType: "plan",
+        adjustments: 10
+      },
+
+      // Decompression
+      "spinal_decompression": {
+        type: "decompression",
+        name: "Spinal Decompression"
+      }
+    };
+
+    const DOWN_PAYMENT_DEFAULT = 1000;
+
+    // ============================================================
+    // Helpers
+    // ============================================================
+    function getLocalDateISO() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function money(n) {
+      const val = Number(n) || 0;
+      if (val === Math.floor(val)) return "$" + val;
+      return "$" + val.toFixed(2);
+    }
+
+    function parseDecimalInput(str) {
+      if (typeof str !== 'string') str = String(str || '');
+      str = str.trim();
+      // If there's a comma and no period, treat comma as decimal separator
+      if (str.includes(',') && !str.includes('.')) {
+        str = str.replace(',', '.');
+      }
+      // If there are both, treat last one as decimal (e.g. 1.000,50 → 1000.50)
+      else if (str.includes(',') && str.includes('.')) {
+        str = str.replace(/,/g, '');
+      }
+      const val = parseFloat(str);
+      return isNaN(val) ? 0 : val;
+    }
+
+    function getRate(rateType) {
+      if (rateType === "family") return PRICES.adjustment.family;
+      if (rateType === "plan") return PRICES.adjustment.plan;
+      return PRICES.adjustment.payGo;
+    }
+
+    function computeFixedPlanBaseCost(planDef) {
+      const adjRate = getRate(planDef.rateType);
+      const adjCost = (planDef.adjustments || 0) * adjRate;
+      const examCost = (planDef.progressExams || 0) * PRICES.progressExam.withPlan;
+      const xrayCost = (planDef.xrays || 0) * PRICES.xray;
+      return adjCost + examCost + xrayCost;
+    }
+
+    function computeOngoingMonthly(planDef) {
+      const rate = getRate(planDef.rateType);
+      if (planDef.type === "weekly") return Math.round((52 * rate) / 12);
+      if (planDef.type === "biweekly") return Math.round((26 * rate) / 12);
+      if (planDef.type === "monthly") return Math.round(rate);
+      if (planDef.type === "initialWeekly") {
+        const annual = (52 * rate) + (3 * PRICES.progressExam.withPlan) + PRICES.xray;
+        return Math.round(annual / 12);
+      }
+      return null;
+    }
+
+    function getAdditionalCost() {
+      // User requested add-ons always included.
+      // We ignore the "Include Additional Costs" checkbox logic for the calculation itself,
+      // though the checkbox might still be present in UI (we can leave it as is or hide it).
+
+      let additionalCost = 0;
+
+      // 1. Dropdowns (remaining add-ons)
+      document.querySelectorAll('.dropdown').forEach(dropdown => {
+        additionalCost += parseDecimalInput(dropdown.value);
+      });
+
+      // 2. Supplements
+      additionalCost += getSelectedSupplementsCost();
+
+      // 3. Orthotics (Direct from checkboxes)
+      // Each selected orthotic adds $40
+      const orthotics = ["Cervical", "Thoracic", "Lumbar"];
+      orthotics.forEach(type => {
+        const cb = document.querySelector(`input[name="spinalOrthotic"][value="${type}"]`);
+        if (cb && cb.checked) {
+          additionalCost += 40;
+        }
+      });
+
+      return additionalCost;
+    }
+
+    // ============================================================
+    // Additional Recommendations dropdowns (3 identical)
+    // ============================================================
+    function populateDropdowns() {
+      const dropdownContainer = document.getElementById("dropdownContainer");
+      dropdownContainer.innerHTML = "";
+
+      PRICES.addOns.forEach(opt => {
+        const select = document.createElement("select");
+        select.className = "dropdown";
+        select.style.display = "none";
+        select.onchange = updateDetails;
+        select.dataset.key = opt.key;
+
+        const noneOpt = document.createElement("option");
+        noneOpt.value = "0";
+        noneOpt.textContent = "None";
+        select.appendChild(noneOpt);
+
+        const yesOpt = document.createElement("option");
+        yesOpt.value = String(opt.price);
+        yesOpt.textContent = `${opt.label} - $${opt.price}`;
+        select.appendChild(yesOpt);
+
+        dropdownContainer.appendChild(select);
+      });
+    }
+
+    function populateAddonCheckboxPanel() {
+      const panel = document.getElementById("addonCheckboxPanel");
+      if (!panel) return;
+      panel.innerHTML = "";
+      PRICES.addOns.forEach(opt => {
+        const item = document.createElement("label");
+        item.className = "addon-checkbox-item";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "addon-cb";
+        cb.value = opt.key;
+        cb.setAttribute("data-price", opt.price);
+        cb.setAttribute("data-label", opt.label);
+        cb.addEventListener("change", () => {
+          syncCheckboxToDropdown(opt.key, cb.checked);
+          updateDetails();
+        });
+
+        const labelSpan = document.createElement("span");
+        labelSpan.className = "addon-label";
+        labelSpan.textContent = opt.label;
+
+        const priceSpan = document.createElement("span");
+        priceSpan.className = "addon-price";
+        priceSpan.textContent = `$${opt.price}`;
+
+        item.appendChild(cb);
+        item.appendChild(labelSpan);
+        item.appendChild(priceSpan);
+        panel.appendChild(item);
+      });
+    }
+
+    function syncCheckboxToDropdown(key, checked) {
+      const sel = document.querySelector(`.dropdown[data-key="${key}"]`);
+      if (!sel) return;
+      sel.value = checked ? sel.options[1].value : "0";
+    }
+
+    // ============================================================
+    // Render plan details (table)
+    // ============================================================
+    function renderFixedPlanDetails(planDef) {
+      const adjRate = getRate(planDef.rateType);
+      const adjTotal = (planDef.adjustments || 0) * adjRate;
+      const examTotal = (planDef.progressExams || 0) * PRICES.progressExam.withPlan;
+      const xrayTotal = (planDef.xrays || 0) * PRICES.xray;
+
+      const title = planDef.type === "fixed26"
+        ? "<strong>Treatment Plan Details - 26 Week Plan</strong>"
+        : "<strong>Treatment Plan Details - 16 Week Plan</strong>";
+
+      const rows = [];
+      rows.push([title, ""]);
+
+      const adjLabelBase = planDef.familyDisplay
+        ? `${planDef.adjustments} Chiropractic Adjustments (Family Discount)`
+        : `${planDef.adjustments} Chiropractic Adjustments`;
+
+      if (planDef.adjustmentLineStyle === "plain") {
+        rows.push([`${adjLabelBase} <span class='light-text'>- Cost per adjustment: $${adjRate}</span>`, money(adjTotal)]);
+      } else {
+        rows.push([`${adjLabelBase} <span class='light-text'>- Cost per adjustment with plan $${adjRate}, normally $${PRICES.adjustment.payGo}</span>`, money(adjTotal)]);
+      }
+
+      (planDef.scheduleLines || []).forEach(line => {
+        rows.push([`<span class='indent'>${line}</span>`, ""]);
+      });
+
+      if ((planDef.progressExams || 0) > 0) {
+        const n = planDef.progressExams;
+        if (planDef.examLineStyle === "discountedEach") {
+          rows.push([`${n} Progress Exams <span class='light-text'>- Discounted at $${PRICES.progressExam.withPlan} each</span>`, money(examTotal)]);
+        } else {
+          rows.push([`${n} Progress Exams <span class='light-text'>- Only $${PRICES.progressExam.withPlan}, Normally $${PRICES.progressExam.normal}</span>`, money(examTotal)]);
+        }
+      }
+
+      if ((planDef.xrays || 0) > 0) {
+        rows.push(["1 Set Of Comparative X-Rays", money(xrayTotal)]);
+      }
+
+      return rows;
+    }
+
+    function renderOngoingDetails(planDef) {
+      const rate = getRate(planDef.rateType);
+      const rows = [];
+      rows.push(["<strong>Treatment Plan Details</strong>", ""]);
+
+      const familySuffix = planDef.familyDisplay ? " (Family Discount)" : "";
+      rows.push([`Weekly Chiropractic Adjustments${familySuffix} <span class='light-text'>- Cost per adjustment with plan $${rate}, normally $${PRICES.adjustment.payGo}</span>`, ""]);
+
+      if (planDef.type === "initialWeekly") {
+        rows.push([`3 Progress Exams <span class='light-text'>- Only $${PRICES.progressExam.withPlan}, Normally $${PRICES.progressExam.normal}</span>`, ""]);
+        rows.push([`<span class='indent light-text'>Progress Exams Will Take Place Approx On Every 17th Visit</span>`, ""]);
+        rows.push([`1 Set Of Comparative X-Rays`, ""]);
+      }
+
+      rows.push(["Educational Workshop", ""]);
+      rows.push(["Special Consults", ""]);
+      return rows;
+    }
+
+    function renderBiWeeklyDetails(planDef) {
+      const rate = getRate(planDef.rateType);
+      return [
+        ["<strong>Treatment Plan Details</strong>", ""],
+        [`Bi-Weekly Chiropractic Adjustments <span class='light-text'>- Cost per adjustment with plan $${rate}, normally $${PRICES.adjustment.payGo}</span>`, ""],
+        ["Educational Workshop", ""],
+        ["Special Consults", ""]
+      ];
+    }
+
+    function renderMonthlyDetails(planDef) {
+      const rate = getRate(planDef.rateType);
+      return [
+        ["<strong>Treatment Plan Details</strong>", ""],
+        [`Monthly Chiropractic Adjustments <span class='light-text'>- Cost per adjustment with plan $${rate}, normally $${PRICES.adjustment.payGo}</span>`, ""],
+        ["Educational Workshop", ""],
+        ["Special Consults", ""]
+      ];
+    }
+
+    function renderTenPackDetails(planDef) {
+      const rate = getRate(planDef.rateType);
+      return [
+        ["<strong>Flexible Treatment Details</strong>", ""],
+        [`10 Visit Chiropractic Adjustments <span class='light-text'>- Cost per adjustment with plan $${rate}, normally $${PRICES.adjustment.payGo}</span>`, ""],
+        ["Educational Workshop", ""],
+        ["Special Consults", ""]
+      ];
+    }
+
+    function renderDecompressionDetails() {
+      const total = decompressionPlanValue();
+      const sdLineTotal = PRICES.decompression.sdVisits * PRICES.decompression.sdPerVisit;
+      const chLineTotal = PRICES.decompression.chiroVisits * PRICES.decompression.chiroPerVisit;
+
+      return [
+        ["<strong>Treatment Plan Details</strong>", ""],
+        [`<span class='indent'>8 Weeks / ${PRICES.decompression.sdVisits} Spinal Decompression Visits at $${PRICES.decompression.sdPerVisit} each</span>`, money(sdLineTotal)],
+        [`<span class='indent'>16 Weeks / ${PRICES.decompression.chiroVisits} Chiropractic Visits at $${PRICES.decompression.chiroPerVisit} each</span>`, money(chLineTotal)],
+        ["Special Consults and Educational Workshop", ""],
+        ["<strong>Total Plan Cost</strong>", `<strong>${money(total)}</strong>`]
+      ];
+    }
+
+    function buildPlanDetailsTable(planKey) {
+      const planDef = PLANS[planKey];
+      if (!planDef) return null;
+
+      if (planDef.type === "fixed16" || planDef.type === "fixed26") return renderFixedPlanDetails(planDef);
+      if (planDef.type === "weekly" || planDef.type === "initialWeekly") return renderOngoingDetails(planDef);
+      if (planDef.type === "biweekly") return renderBiWeeklyDetails(planDef);
+      if (planDef.type === "monthly") return renderMonthlyDetails(planDef);
+      if (planDef.type === "tenpack") return renderTenPackDetails(planDef);
+      if (planDef.type === "decompression") return renderDecompressionDetails();
+      return null;
+    }
+
+    // ============================================================
+    // Update details & totals
+    // ============================================================
+    function renderSelectedAddonsList() {
+      const container = document.getElementById('selectedAddonsList');
+      if (!container) return;
+
+      const items = [];
+
+      // Checked add-on checkboxes
+      document.querySelectorAll('.addon-cb:checked').forEach(cb => {
+        items.push({ name: cb.getAttribute('data-label'), price: parseFloat(cb.getAttribute('data-price')) || 0 });
+      });
+
+      // Selected orthotics
+      ['Cervical', 'Thoracic', 'Lumbar'].forEach(type => {
+        const cb = document.querySelector(`input[name="spinalOrthotic"][value="${type}"]`);
+        if (cb && cb.checked) {
+          const sel = document.getElementById(`pos_${type}`);
+          const placement = sel && sel.value ? ` (${sel.value})` : '';
+          items.push({ name: `Spinal Orthotic - ${type}${placement}`, price: 40 });
+        }
+      });
+
+      // Selected supplements
+      selectedSupplements.forEach(s => {
+        items.push({ name: s.name, price: s.retail_price || 0 });
+      });
+
+      if (items.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '<h3>Additional Recommendations</h3>';
+      items.forEach(it => {
+        html += `<div class="selected-addon-row">
+          <span class="addon-name">${it.name}</span>
+          <span class="addon-cost">$${parseFloat(it.price).toFixed(2)}</span>
+        </div>`;
+      });
+      container.innerHTML = html;
+      container.style.display = 'block';
+    }
+
+    function updateDetails() {
+      const selectedOption = document.getElementById('treatmentOptions').value;
+      const detailsDiv = document.getElementById("planDetails");
+      const financialInfo = document.querySelector('.financial-info');
+
+      const tableRows = buildPlanDetailsTable(selectedOption);
+
+      if (tableRows) {
+        let detailsHTML = '<table>';
+        tableRows.forEach(row => {
+          detailsHTML += `<tr><td>${row[0]}</td><td>${row[1] || ""}</td></tr>`;
+        });
+        detailsHTML += '</table>';
+        detailsDiv.innerHTML = detailsHTML;
+        detailsDiv.style.display = 'block';
+        financialInfo.style.display = 'block';
+      } else {
+        detailsDiv.style.display = 'none';
+        detailsDiv.innerHTML = "";
+      }
+
+      renderSelectedAddonsList();
+      calculateTotal();
+      renderAltPricing();
+    }
+
+    function toggleDownPaymentUI(show) {
+      const wrap = document.getElementById("downPaymentWrap");
+      const dpLine = document.getElementById("downPaymentLine");
+      const remLine = document.getElementById("remainingBalanceLine");
+      if (wrap) wrap.style.display = show ? "block" : "none";
+      if (dpLine) dpLine.style.display = show ? "block" : "none";
+      if (remLine) remLine.style.display = show ? "block" : "none";
+    }
+
+    // ============================================================
+    // Totals / Payments
+    // ============================================================
+    function calculateTotal() {
+      const planKey = document.getElementById('treatmentOptions').value;
+      const planDef = PLANS[planKey];
+
+      const totalCostDiv = document.getElementById('totalCost');
+      const additionalCostDiv = document.getElementById('additionalCost');
+      const monthlyPaymentsDiv = document.getElementById('monthlyPayments');
+      const financialInfo = document.querySelector('.financial-info');
+
+      totalCostDiv.style.display = 'block';
+      additionalCostDiv.style.display = 'block';
+      monthlyPaymentsDiv.style.display = 'block';
+      totalCostDiv.innerHTML = "";
+      additionalCostDiv.innerHTML = "";
+      monthlyPaymentsDiv.innerHTML = "";
+
+      const additionalCost = getAdditionalCost();
+
+      if (!planDef) {
+        if (additionalCost > 0) {
+          totalCostDiv.innerHTML = `Total: <strong>${money(additionalCost)}</strong>`;
+          monthlyPaymentsDiv.style.display = 'none';
+          additionalCostDiv.style.display = 'none';
+          financialInfo.style.display = 'block';
+        } else {
+          totalCostDiv.style.display = 'none';
+          additionalCostDiv.style.display = 'none';
+          monthlyPaymentsDiv.style.display = 'none';
+          financialInfo.style.display = 'none';
+        }
+        return;
+      }
+
+      if (["weekly", "biweekly", "monthly", "initialWeekly"].includes(planDef.type)) {
+        totalCostDiv.style.display = 'none';
+        const monthly = computeOngoingMonthly(planDef);
+        monthlyPaymentsDiv.innerHTML = `Monthly Payment: <strong>${money(monthly)}</strong>`;
+
+        if (additionalCost > 0) {
+          additionalCostDiv.innerHTML = `Additional Recommendations: <strong>${money(additionalCost)}</strong>`;
+        } else {
+          additionalCostDiv.innerHTML = "";
+        }
+
+        financialInfo.style.display = 'block';
+        return;
+      }
+
+      if (planDef.type === "decompression") {
+        const cash = PRICES.decompression.cashPrice;
+        const cashPlusAddons = Math.round(cash + additionalCost);
+
+        const financeBase = decompressionPlanValue();
+        const financePlusAddonsMonthly = Math.round((financeBase + additionalCost) / PRICES.decompression.financeMonths);
+
+        totalCostDiv.innerHTML = `
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <tr>
+          <th style="border-bottom: 2px solid #ddd; padding: 8px;">Payment Option</th>
+          <th style="border-bottom: 2px solid #ddd; padding: 8px;">Amount</th>
+        </tr>
+        <tr>
+          <td style="padding: 8px;">One-Time Payment (Cash / Check / Credit Card)</td>
+          <td style="padding: 8px;"><strong>${money(cashPlusAddons)}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px;">Four Monthly Payments (Same as Cash)</td>
+          <td style="padding: 8px;"><strong>${money(Math.round(cashPlusAddons / PRICES.decompression.cashPayments))}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px;">${PRICES.decompression.financeLabel}</td>
+          <td style="padding: 8px;"><strong>${money(financePlusAddonsMonthly)}</strong></td>
+        </tr>
+      </table>
+    `;
+
+        monthlyPaymentsDiv.style.display = 'none';
+        additionalCostDiv.style.display = 'none';
+        financialInfo.style.display = 'block';
+        return;
+      }
+
+      if (planDef.type === "tenpack") {
+        const oneTime = (planDef.adjustments || 10) * getRate(planDef.rateType);
+        totalCostDiv.innerHTML = `Total: <strong>${money(oneTime + additionalCost)}</strong>`;
+        monthlyPaymentsDiv.style.display = 'none';
+        additionalCostDiv.style.display = 'none';
+        financialInfo.style.display = 'block';
+        return;
+      }
+
+      if (planDef.type === "fixed16" || planDef.type === "fixed26") {
+        const base = computeFixedPlanBaseCost(planDef);
+        const total = Math.round(base + additionalCost);
+
+        totalCostDiv.innerHTML = `Total Plan Cost: <strong>${money(total)}</strong>`;
+        additionalCostDiv.style.display = 'none';
+
+        const planMonths = (planDef.type === "fixed16") ? 4 : 6;
+        let downPayment = parseDecimalInput(document.getElementById("downPaymentInput")?.value);
+        if (downPayment === 0 && !(document.getElementById("downPaymentInput")?.value?.trim())) downPayment = DOWN_PAYMENT_DEFAULT;
+        downPayment = Math.max(0, Math.min(total, downPayment));
+        const remainingBalance = Math.max(0, total - downPayment);
+        const monthly = Math.round(remainingBalance / planMonths);
+
+        toggleDownPaymentUI(true);
+        const dpLine = document.getElementById("downPaymentLine");
+        const remLine = document.getElementById("remainingBalanceLine");
+        if (dpLine) dpLine.innerHTML = `Down Payment: <strong>${money(downPayment)}</strong>`;
+        if (remLine) remLine.innerHTML = `Remaining Balance: <strong>${money(remainingBalance)}</strong>`;
+        monthlyPaymentsDiv.innerHTML = `Adjusted Monthly Payment: <strong>${money(monthly)}</strong>`;
+        financialInfo.style.display = 'block';
+        return;
+      }
+
+      financialInfo.style.display = 'none';
+    }
+
+    // ============================================================
+    // Orthotics helpers
+    // ============================================================
+    function toggleOrthoticSelects() {
+      document.querySelectorAll('input[name="spinalOrthotic"]').forEach(cb => {
+        // Show/hide placement dropdowns only
+        const sel = document.getElementById(`pos_${cb.value}`);
+        if (sel) {
+          sel.style.display = cb.checked ? "block" : "none";
+          if (!cb.checked) sel.value = "";
+        }
+      });
+      // Recalculate totals immediately (to add/remove $40)
+      updateDetails();
+    }
+
+    function collectOrthoticData() {
+      const result = {
+        cervical_selected: false,
+        cervical_placement: "",
+        thoracic_selected: false,
+        thoracic_placement: "",
+        lumbar_selected: false,
+        lumbar_placement: ""
+      };
+
+      const c = document.querySelector('input[name="spinalOrthotic"][value="Cervical"]');
+      const t = document.querySelector('input[name="spinalOrthotic"][value="Thoracic"]');
+      const l = document.querySelector('input[name="spinalOrthotic"][value="Lumbar"]');
+
+      if (c && c.checked) {
+        result.cervical_selected = true;
+        const sel = document.getElementById("pos_Cervical");
+        result.cervical_placement = sel ? sel.value : "";
+      }
+      if (t && t.checked) {
+        result.thoracic_selected = true;
+        const sel = document.getElementById("pos_Thoracic");
+        result.thoracic_placement = sel ? sel.value : "";
+      }
+      if (l && l.checked) {
+        result.lumbar_selected = true;
+        const sel = document.getElementById("pos_Lumbar");
+        result.lumbar_placement = sel ? sel.value : "";
+      }
+      return result;
+    }
+
+    // ============================================================
+    // ALT PRICING (Internal-only; never in PDF)
+    // ============================================================
+    function altMoney(n) { return "$" + Math.round(Number(n) || 0); }
+
+    // used for add-on mapping (like sd5/sd10 totals)
+    function altChiroPerVisitTotal() {
+      const a = ALT_PRICES.chiroVisit;
+      return a.adjustment5Regions + a.extremity + a.massageOrTraction + a.pemf + a.hotColdPack;
+    }
+    function altDecompressionPerVisitTotal() {
+      const d = ALT_PRICES.decompressionVisit;
+      return d.decompression + d.adjustment5Regions + d.extremity + d.pemf + d.hotColdPack;
+    }
+
+    function getSelectedAddOnsByKey() {
+
+      const out = [];
+      document.querySelectorAll(".dropdown").forEach(sel => {
+        const val = parseFloat(sel.value) || 0;
+        if (val <= 0) return;
+
+        const txt = sel.options[sel.selectedIndex].text || "";
+        const label = txt.split(" - $")[0].trim();
+        if (!label || label.toLowerCase() === "none") return;
+
+        const found = PRICES.addOns.find(x => x.label === label);
+        out.push({ key: found ? found.key : null, label });
+      });
+
+      const seen = new Set();
+      return out.filter(x => {
+        const k = (x.label || "").toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    }
+
+    function isDeviceAlreadySelectedAsAddon() {
+      const selected = getSelectedAddOnsByKey();
+      return selected.some(s => ["cervicalOrthotic", "thoracicOrthotic", "lumbarOrthotic"].includes(s.key));
+    }
+
+    // No more excluded addon keys (supplements moved to separate section)
+    const ALT_EXCLUDED_ADDON_KEYS = new Set([]);
+
+    function altAddOnLineItems() {
+      const selected = getSelectedAddOnsByKey();
+      const items = [];
+      const unmapped = [];
+
+      selected.forEach(s => {
+        const k = s.key;
+
+        if (!k) { unmapped.push(s.label); return; }
+        if (ALT_EXCLUDED_ADDON_KEYS.has(k)) return;
+
+        if (k === "correctiveExercise") {
+          items.push({ label: "Corrective Exercise Plan (one-time)", qty: 1, unit: ALT_PRICES.correctiveExerciseOneTime });
+          return;
+        }
+
+        if (k === "footOrthotic") {
+          items.push({ label: "Custom Foot Orthotic", qty: 1, unit: 360 }); // same as cash
+          return;
+        }
+
+        if (k === "cervicalOrthotic" || k === "thoracicOrthotic" || k === "lumbarOrthotic") {
+          items.push({ label: s.label + " (one-time)", qty: 1, unit: ALT_PRICES.deviceOneTime.gravityDevice });
+          return;
+        }
+
+        if (k === "sd5") {
+          items.push({ label: "Spinal Decompression Add-on (5 visits)", qty: 5, unit: altDecompressionPerVisitTotal() });
+          return;
+        }
+
+        if (k === "sd10") {
+          items.push({ label: "Spinal Decompression Add-on (10 visits)", qty: 10, unit: altDecompressionPerVisitTotal() });
+          return;
+        }
+
+        if (k === "pemf10") {
+          items.push({ label: "PEMF Therapy (10 sessions)", qty: 10, unit: ALT_PRICES.chiroVisit.pemf });
+          return;
+        }
+
+        if (k === "handMassage10" || k === "chairMassage10") {
+          items.push({ label: `${s.label} (10 sessions @ 15 min)`, qty: 10, unit: ALT_PRICES.chiroVisit.massageOrTraction });
+          return;
+        }
+
+        if (k === "softwave10") {
+          items.push({ label: "SoftWave™ Therapy (10 sessions)", qty: 10, unit: ALT_PRICES.softwave.perVisit });
+          return;
+        }
+
+        unmapped.push(s.label);
+      });
+
+      return { items, unmapped };
+    }
+
+    function altVisitCountsForPlan(planDef) {
+      if (!planDef) return null;
+
+      if (planDef.type === "fixed16" || planDef.type === "fixed26" || planDef.type === "tenpack") {
+        const chiroVisits = planDef.adjustments || 0;
+        return { chiroVisits, decompressionVisits: 0, totalVisits: chiroVisits, isMonthlyEstimate: false };
+      }
+
+      if (planDef.type === "decompression") {
+        const decompressionVisits = PRICES.decompression.sdVisits || 0;
+        const chiroVisits = PRICES.decompression.chiroVisits || 0;
+        return { chiroVisits, decompressionVisits, totalVisits: chiroVisits + decompressionVisits, isMonthlyEstimate: false };
+      }
+
+      // Ongoing plans: monthly estimate only (not annual)
+      let visitsPerMonth = null;
+      if (planDef.type === "weekly" || planDef.type === "initialWeekly") visitsPerMonth = 52 / 12;
+      if (planDef.type === "biweekly") visitsPerMonth = 26 / 12;
+      if (planDef.type === "monthly") visitsPerMonth = 1;
+
+      return {
+        chiroVisits: visitsPerMonth,
+        decompressionVisits: 0,
+        totalVisits: visitsPerMonth,
+        isMonthlyEstimate: true,
+        monthlyLabel: "Monthly Estimated Alt Pricing"
+      };
+    }
+
+    function altProgressExamCount(totalVisits) {
+      const n = ALT_PRICES.progressExam.everyNVisits;
+      if (!n || totalVisits <= 0) return 0;
+      return Math.floor(totalVisits / n);
+    }
+
+    function shouldIncludeAltXrays(planDef) {
+      return !!(planDef && (planDef.xrays || 0) > 0);
+    }
+
+    /* Itemized per-service Alt Pricing model */
+    function buildAltPricingModel(planDef) {
+      const visits = altVisitCountsForPlan(planDef);
+      if (!visits) return null;
+
+      const rows = [];
+
+      rows.push({
+        kind: "text",
+        html: `<div style="font-size:12px;color:#6b7280;line-height:1.4;margin-bottom:10px;">
+      This view illustrates a <strong>per-service</strong> billing style rather than a <strong>per-visit</strong> bundled fee.
+      Multiple services may be billed separately during the same appointment, which can significantly increase the total billed amount.
+    </div>`
+      });
+
+      function addLine(label, qty, unit) {
+        if (!qty || qty <= 0) return;
+        rows.push({ label, qty, unit });
+      }
+
+      // One-time device: applies to fixed plans + tenpack + decompression unless already selected as spinal orthotic add-on
+      const deviceAutoApplies = ["fixed16", "fixed26", "tenpack", "decompression"].includes(planDef.type);
+      if (!visits.isMonthlyEstimate && deviceAutoApplies && !isDeviceAlreadySelectedAsAddon()) {
+        rows.push({ label: "Recommended Device (one-time)", qty: 1, unit: ALT_PRICES.deviceOneTime.gravityDevice });
+      }
+
+      // Monthly estimate plans
+      if (visits.isMonthlyEstimate) {
+        const v = visits.chiroVisits;
+        const a = ALT_PRICES.chiroVisit;
+
+        addLine("Chiropractic adjustment (5 regions)", v, a.adjustment5Regions);
+        addLine("Extremity adjustment", v, a.extremity);
+        addLine("Massage therapy / Mechanical traction", v, a.massageOrTraction);
+        addLine("PEMF therapy", v, a.pemf);
+        addLine("Hot/cold pack", v, a.hotColdPack);
+      }
+
+      // Fixed-count plans
+      if (!visits.isMonthlyEstimate) {
+        const chiroV = visits.chiroVisits || 0;
+        const decompV = visits.decompressionVisits || 0;
+
+        // Non-decompression chiropractic visits
+        if (chiroV > 0) {
+          const a = ALT_PRICES.chiroVisit;
+          addLine("Chiropractic adjustment (5 regions)", chiroV, a.adjustment5Regions);
+          addLine("Extremity adjustment", chiroV, a.extremity);
+          addLine("Massage therapy / Mechanical traction", chiroV, a.massageOrTraction);
+          addLine("PEMF therapy", chiroV, a.pemf);
+          addLine("Hot/cold pack", chiroV, a.hotColdPack);
+        }
+
+        // Decompression visits (NO massage/traction)
+        if (decompV > 0) {
+          const d = ALT_PRICES.decompressionVisit;
+          addLine("Vertebral axial decompression", decompV, d.decompression);
+          addLine("Chiropractic adjustment (5 regions)", decompV, d.adjustment5Regions);
+          addLine("Extremity adjustment", decompV, d.extremity);
+          addLine("PEMF therapy", decompV, d.pemf);
+          addLine("Hot/cold pack", decompV, d.hotColdPack);
+        }
+
+        // Progress exams every N total visits
+        const examCount = altProgressExamCount(visits.totalVisits);
+        if (examCount > 0) {
+          rows.push({
+            label: `Progress exams (every ${ALT_PRICES.progressExam.everyNVisits} visits)`,
+            qty: examCount,
+            unit: ALT_PRICES.progressExam.price
+          });
+        }
+
+        // Itemized X-rays if included in plan
+        if (shouldIncludeAltXrays(planDef)) {
+          rows.push({ label: "Cervical spine X-rays", qty: 1, unit: ALT_PRICES.xrays.cervical });
+          rows.push({ label: "Thoracic spine X-rays", qty: 1, unit: ALT_PRICES.xrays.thoracic });
+          rows.push({ label: "Lumbar spine X-rays", qty: 1, unit: ALT_PRICES.xrays.lumbar });
+        }
+      }
+
+      // Add-ons
+      const addOn = altAddOnLineItems();
+      addOn.items.forEach(it => rows.push({ label: it.label, qty: it.qty, unit: it.unit }));
+
+      // Total
+      let total = 0;
+      rows.forEach(r => {
+        if (!r.label) return;
+        total += (Number(r.qty) || 0) * (Number(r.unit) || 0);
+      });
+
+      return {
+        rows,
+        total,
+        isMonthly: !!visits.isMonthlyEstimate,
+        totalLabel: visits.isMonthlyEstimate ? visits.monthlyLabel : "Total Alt Pricing",
+        unmapped: addOn.unmapped
+      };
+    }
+
+    function renderAltPricing() {
+      const container = document.getElementById("altPricingSection");
+      const show = document.getElementById("showAltPricing")?.checked;
+
+      if (!container) return;
+
+      if (!show) {
+        container.style.display = "none";
+        container.innerHTML = "";
+        return;
+      }
+
+      const planKey = document.getElementById("treatmentOptions").value;
+      const planDef = PLANS[planKey];
+
+      if (!planDef) {
+        container.style.display = "block";
+        container.innerHTML = `<div style="font-size:12px;color:#6b7280;line-height:1.4;">
+      Select a treatment plan to view Alt Pricing.
+    </div>`;
+        return;
+      }
+
+      const built = buildAltPricingModel(planDef);
+      if (!built) return;
+
+      let html = `
+    <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;">
+      <div style="font-weight:bold;margin-bottom:8px;">Alt Pricing (Internal)</div>
+  `;
+
+      built.rows.forEach(r => { if (r.kind === "text") html += r.html; });
+
+      html += `<table style="width:100%;border-collapse:collapse;font-size:13px;">`;
+      built.rows.forEach(r => {
+        if (!r.label) return;
+
+        const lineTotal = (Number(r.qty) || 0) * (Number(r.unit) || 0);
+        const qtyTxt = built.isMonthly ? (Number(r.qty).toFixed(2)) : r.qty;
+
+        html += `
+      <tr>
+        <td style="padding:6px 6px;border-bottom:1px solid #f0f2f5;">${r.label}</td>
+        <td style="padding:6px 6px;border-bottom:1px solid #f0f2f5;text-align:right;white-space:nowrap;">${qtyTxt} × ${altMoney(r.unit)}</td>
+        <td style="padding:6px 6px;border-bottom:1px solid #f0f2f5;text-align:right;white-space:nowrap;font-weight:bold;">${altMoney(lineTotal)}</td>
+      </tr>
+    `;
+      });
+      html += `</table>`;
+
+      html += `<div style="margin-top:10px;text-align:right;font-weight:bold;">${built.totalLabel}: ${altMoney(built.total)}</div>`;
+
+      if (built.unmapped && built.unmapped.length) {
+        html += `<div style="margin-top:10px;font-size:12px;color:#6b7280;line-height:1.4;">
+      Selected add-ons not mapped in Alt Pricing (not included in total):<br>
+      ${built.unmapped.map(x => `• ${x}`).join("<br>")}
+    </div>`;
+      }
+
+      html += `</div>`;
+      container.innerHTML = html;
+      container.style.display = "block";
+    }
+
+    // ============================================================
+    // Webhooks
+    // ============================================================
+    const WEBHOOK_URLS = [
+      "https://services.leadconnectorhq.com/hooks/uUGu9qTLe0cEAC8VRMtN/webhook-trigger/d47abd25-d484-4a40-870b-174a040779f7",
+      "https://services.leadconnectorhq.com/hooks/JZo7w5nszbCtjIqV1x9k/webhook-trigger/56761d8a-0ef1-4384-89ca-28d91c280849",
+      "https://services.leadconnectorhq.com/hooks/oej0L0NKPdaUHsXpkfht/webhook-trigger/6dc3f683-2f9d-411a-a78b-43416a909329",
+      "https://services.leadconnectorhq.com/hooks/JSpxdUWGPAtdEZYjolzD/webhook-trigger/2c8cb585-8058-4581-84b5-c4f9b24255fc",
+      "https://services.leadconnectorhq.com/hooks/fpDdQMQa7gdNbrimXzzx/webhook-trigger/259ed3d2-52dd-4cb6-b309-ed9147e9b687"
+    ];
+
+    function buildPayload() {
+      const planKey = document.getElementById("treatmentOptions").value;
+      const planDef = PLANS[planKey] || null;
+
+      const totalPlanCost = planDef ? Math.round(computeFixedPlanBaseCost(planDef) + getAdditionalCost()) : getAdditionalCost();
+      const planMonths = planDef ? ((planDef.type === "fixed16") ? 4 : (planDef.type === "fixed26" ? 6 : 0)) : 0;
+      let downPaymentVal = parseDecimalInput(document.getElementById("downPaymentInput")?.value);
+      if (downPaymentVal === 0 && !(document.getElementById("downPaymentInput")?.value?.trim())) downPaymentVal = DOWN_PAYMENT_DEFAULT;
+      downPaymentVal = Math.max(0, downPaymentVal);
+      const remainingBalance = (planDef && (planDef.type === "fixed16" || planDef.type === "fixed26")) ? Math.max(0, totalPlanCost - downPaymentVal) : 0;
+      const adjustedMonthly = (planDef && (planDef.type === "fixed16" || planDef.type === "fixed26")) ? Math.round(remainingBalance / planMonths) : 0;
+
+      // Data Collections
+      const orthotics = collectOrthoticData();
+      const supplements = getSelectedSupplementsList();
+
+      // GHL: Orthotic placement values for individual fields
+      const cervicalPlacement = orthotics.cervical_selected
+        ? `Cervical (${orthotics.cervical_placement || 'N/A'})`
+        : "";
+      const thoracicPlacement = orthotics.thoracic_selected
+        ? `Thoracic (${orthotics.thoracic_placement || 'N/A'})`
+        : "";
+      const lumbarPlacement = orthotics.lumbar_selected
+        ? `Lumbar (${orthotics.lumbar_placement || 'N/A'})`
+        : "";
+
+      // GHL: Supplements Summary String
+      const suppSummary = supplements.map(s => `${s.name} ($${s.price})`).join(", ");
+
+      // GHL: Today's date in ISO format (no timezone shift)
+      const submissionDate = document.getElementById("todayDate").value || getLocalDateISO();
+
+      // GHL: Total adjustments
+      const totalAdjustments = planDef ? (planDef.adjustments || 0) : 0;
+
+      // Build flat payload — sanitize all values (no null/undefined)
+      const raw = {
+        // Basic Info
+        patient_name: (document.getElementById("patientName").value || "").trim(),
+        patient_email: (document.getElementById("patientEmail").value || "").trim(),
+        patient_phone: (document.getElementById("patientPhone").value || "").trim(),
+        location: (document.getElementById("locationSelect").value || "").trim(),
+
+        // ===== GHL CUSTOM FIELD MAPPING =====
+        orthotic_placement: cervicalPlacement,
+        thoracic_orthotic_placement: thoracicPlacement,
+        lumbar_orthotic: lumbarPlacement,
+        provider: (document.getElementById("providerSelect").value || "").trim(),
+        total_adjustments: String(totalAdjustments),
+        plan_submission_date: submissionDate,
+        // ====================================
+
+        // Plan Details
+        treatment_plan: planKey || "",
+        treatment_plan_name: planDef ? planDef.name : "",
+        treatment_plan_type: planDef ? planDef.type : "",
+        total_plan_cost: String(totalPlanCost),
+        additional_recommendations_cost: String(getAdditionalCost()),
+        monthly_payment: String((planDef && ["weekly", "biweekly", "monthly", "initialWeekly"].includes(planDef.type)) ? computeOngoingMonthly(planDef) : adjustedMonthly),
+        notes: (document.getElementById("notesInput").value || "").trim(),
+        selected_addons: selectedAddOnNames().join(", "),
+
+        // Plan Stats
+        xrays_included: (planDef && (planDef.xrays || 0) > 0) ? "Yes" : "No",
+        progress_exams: String(planDef ? (planDef.progressExams || 0) : 0),
+        schedule: planDef && planDef.scheduleLines ? planDef.scheduleLines.join(" | ") : "",
+
+        // Clinical
+        spinal_degeneration_phase: (document.getElementById("spinalDegeneration").value || "").trim(),
+        chief_complaint: (document.getElementById("chiefComplaint").value || "").trim(),
+        bilateral_scales: (document.getElementById("bilateralScales").value || "").trim(),
+
+        // Orthotics summary
+        orthotics_summary: [cervicalPlacement, thoracicPlacement, lumbarPlacement].filter(Boolean).join(", "),
+
+        // Supplements
+        supplements_summary: suppSummary,
+        supplements_total_cost: String(getSelectedSupplementsCost()),
+
+        // Financial
+        down_payment: String(downPaymentVal),
+        remaining_balance: String(remainingBalance)
+      };
+
+      // Sanitize: replace any null/undefined with empty string
+      const payload = {};
+      Object.keys(raw).forEach(k => {
+        const v = raw[k];
+        payload[k] = (v === null || v === undefined) ? "" : String(v);
+      });
+
+      return payload;
+    }
+
+    function validatePayload(payload) {
+      const required = [
+        'patient_name', 'provider', 'plan_submission_date',
+        'treatment_plan', 'total_plan_cost'
+      ];
+      const missing = required.filter(k => !payload[k]);
+      if (missing.length > 0) {
+        console.warn('[Webhook] Missing required fields:', missing);
+        return false;
+      }
+      return true;
+    }
+
+    async function sendToWebhook(url, payload) {
+      const params = new URLSearchParams();
+      Object.keys(payload).forEach(key => {
+        params.append(key, payload[key]);
+      });
+
+      console.log('[Webhook] Sending to:', url);
+      console.log('[Webhook] Payload keys:', Object.keys(payload));
+      console.log('[Webhook] Full payload:', JSON.stringify(payload, null, 2));
+
+      return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        mode: "no-cors",
+        body: params
+      });
+    }
+
+    async function sendAllWebhooks(payload) {
+      console.log('[Webhook] === Starting webhook submission ===');
+
+      if (!validatePayload(payload)) {
+        console.error('[Webhook] Payload validation failed. Aborting.');
+        alert("Please fill in all required fields before submitting.");
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const url of WEBHOOK_URLS) {
+        try {
+          await sendToWebhook(url, payload);
+          successCount++;
+          console.log(`[Webhook] ✅ Sent successfully to: ${url}`);
+        } catch (err) {
+          failCount++;
+          console.error(`[Webhook] ❌ Failed for: ${url}`, err);
+          console.error('[Webhook] Error details:', {
+            message: err.message,
+            stack: err.stack,
+            url: url
+          });
+        }
+      }
+
+      console.log(`[Webhook] === Complete: ${successCount} sent, ${failCount} failed ===`);
+    }
+
+    // ============================================================
+    // Copy Summary (SOAP) - NO pricing
+    // ============================================================
+    function cleanFamilyText(s) {
+      return (s || "").replace(/\(Family Discount\)/gi, "").replace(/\s{2,}/g, " ").trim();
+    }
+
+    function selectedAddOnNames() {
+      // Logic for "Include Additional Costs" checkbox removed as per request.
+      // Always include selected add-ons.
+      const names = [];
+
+      document.querySelectorAll(".dropdown").forEach(sel => {
+        const val = parseFloat(sel.value) || 0;
+        if (val <= 0) return;
+
+        const txt = sel.options[sel.selectedIndex].text || "";
+        const nameOnly = txt.split(" - $")[0].trim();
+        if (nameOnly && nameOnly.toLowerCase() !== "none") names.push(nameOnly);
+      });
+
+      return [...new Set(names)];
+    }
+
+    async function copySummarySoap() {
+      const planKey = document.getElementById("treatmentOptions").value;
+      const planDef = PLANS[planKey];
+
+      const patient = (document.getElementById("patientName").value || "").trim();
+      const provider = (document.getElementById("providerSelect").value || "").trim();
+      const date = (document.getElementById("todayDate").value || "").trim();
+      const notes = (document.getElementById("notesInput").value || "").trim();
+
+      const lines = [];
+      lines.push("TREATMENT PLAN SUMMARY");
+      if (patient) lines.push(`Patient: ${patient}`);
+      if (provider) lines.push(`Provider: ${provider}`);
+      if (date) lines.push(`Date: ${date}`);
+
+      if (planDef) {
+        lines.push("");
+        lines.push(`Plan: ${cleanFamilyText(planDef.name)}`);
+        lines.push("Included:");
+
+        if (planDef.type === "fixed16" || planDef.type === "fixed26") {
+          lines.push(`- ${planDef.adjustments} Chiropractic Adjustments`);
+          (planDef.scheduleLines || []).forEach(s => lines.push(`- ${s}`));
+          if ((planDef.progressExams || 0) > 0) lines.push(`- ${planDef.progressExams} Progress Exams`);
+          if ((planDef.xrays || 0) > 0) lines.push(`- 1 Set Of Comparative X-Rays`);
+        }
+
+        if (planDef.type === "weekly") {
+          lines.push(`- Weekly Chiropractic Adjustments`);
+          lines.push(`- Educational Workshop`);
+          lines.push(`- Special Consults`);
+        }
+
+        if (planDef.type === "biweekly") {
+          lines.push(`- Bi-Weekly Chiropractic Adjustments`);
+          lines.push(`- Educational Workshop`);
+          lines.push(`- Special Consults`);
+        }
+
+        if (planDef.type === "monthly") {
+          lines.push(`- Monthly Chiropractic Adjustments`);
+          lines.push(`- Educational Workshop`);
+          lines.push(`- Special Consults`);
+        }
+
+        if (planDef.type === "initialWeekly") {
+          lines.push(`- Weekly Chiropractic Adjustments`);
+          lines.push(`- 3 Progress Exams`);
+          lines.push(`- 1 Set Of Comparative X-Rays`);
+          lines.push(`- Educational Workshop`);
+          lines.push(`- Special Consults`);
+        }
+
+        if (planDef.type === "tenpack") {
+          lines.push(`- 10 Chiropractic Adjustments`);
+          lines.push(`- Educational Workshop`);
+          lines.push(`- Special Consults`);
+        }
+
+        if (planDef.type === "decompression") {
+          lines.push(`- 8 Weeks / ${PRICES.decompression.sdVisits} Spinal Decompression Visits`);
+          lines.push(`- 16 Weeks / ${PRICES.decompression.chiroVisits} Chiropractic Visits`);
+          lines.push(`- Special Consults and Educational Workshop`);
+        }
+      }
+
+      const addOns = selectedAddOnNames();
+      if (addOns.length) {
+        lines.push("");
+        lines.push("Additional Recommendations:");
+        addOns.forEach(a => lines.push(`- ${a}`));
+      }
+
+      if (notes) {
+        lines.push("");
+        lines.push("Notes:");
+        lines.push(notes);
+      }
+
+      const output = lines.join("\n");
+
+      try {
+        await navigator.clipboard.writeText(output);
+        alert("Copied to clipboard.");
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = output;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        alert("Copied to clipboard.");
+      }
+    }
+
+    async function submitAll() {
+      updateDetails();
+
+      if (!document.getElementById("treatmentOptions").value) {
+        alert("Please select a treatment plan before submitting.");
+        return;
+      }
+      if (!signaturePad || signaturePad.isEmpty()) {
+        alert("Please sign before submitting.");
+        return;
+      }
+
+      const payload = buildPayload();
+      try {
+        await generatePDF();
+        await sendAllWebhooks(payload);
+        alert("Saved, PDF generated, and webhooks sent.");
+      } catch (err) {
+        console.error("Submit error:", err);
+        alert("An error occurred while submitting.");
+      }
+    }
+
+    // ============================================================
+    // Reset
+    // ============================================================
+    function resetForm() {
+      document.getElementById("patientName").value = "";
+      const pe = document.getElementById("patientEmail"); if (pe) pe.value = "";
+      const pp = document.getElementById("patientPhone"); if (pp) pp.value = "";
+      const cc = document.getElementById("chiefComplaint"); if (cc) cc.value = "";
+      const bs = document.getElementById("bilateralScales"); if (bs) bs.value = "";
+      const sdg = document.getElementById("spinalDegeneration"); if (sdg) sdg.value = "";
+
+      document.querySelectorAll('input[name="spinalOrthotic"]').forEach(cb => cb.checked = false);
+      document.querySelectorAll('.orthotic-pos-select').forEach(sel => { sel.value = ""; sel.style.display = 'none'; });
+
+      document.getElementById("providerSelect").value = "";
+      const loc = document.getElementById("locationSelect"); if (loc) loc.value = "";
+      document.getElementById("todayDate").value = getLocalDateISO();
+
+      document.getElementById("treatmentOptions").value = "";
+      document.getElementById("planDetails").innerHTML = "";
+      document.getElementById("planDetails").style.display = "none";
+
+      document.querySelectorAll(".addon-cb").forEach(cb => cb.checked = false);
+      document.querySelectorAll(".dropdown").forEach(sel => sel.value = "0");
+
+      // Clear supplements
+      selectedSupplements = [];
+      renderSelectedSupplements();
+
+      // Clear selected items list
+      const sal = document.getElementById("selectedAddonsList");
+      if (sal) { sal.style.display = "none"; sal.innerHTML = ""; }
+
+      document.getElementById("notesInput").value = "";
+      document.getElementById("notesPrint").textContent = "";
+
+      const dp = document.getElementById("downPaymentInput");
+      if (dp) dp.value = DOWN_PAYMENT_DEFAULT;
+      toggleDownPaymentUI(false);
+
+      const fin = document.querySelector(".financial-info");
+      fin.style.display = "none";
+      document.getElementById("totalCost").innerHTML = "";
+      document.getElementById("additionalCost").innerHTML = "";
+      document.getElementById("monthlyPayments").innerHTML = "";
+
+      // Alt Pricing reset
+      const sap = document.getElementById("showAltPricing");
+      if (sap) sap.checked = false;
+      const aps = document.getElementById("altPricingSection");
+      if (aps) { aps.style.display = "none"; aps.innerHTML = ""; }
+
+      if (signaturePad) signaturePad.clear();
+    }
+
+    // ============================================================
+    // Signature + PDF
+    // ============================================================
+    let signaturePad;
+
+    function resizeCanvas() {
+      const canvas = document.getElementById("signatureCanvas");
+      if (!canvas) return;
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      canvas.width = canvas.offsetWidth * ratio;
+      canvas.height = canvas.offsetHeight * ratio;
+      canvas.getContext("2d").scale(ratio, ratio);
+    }
+
+    /* ===== Notes PDF fix helpers ===== */
+    function setNotesVisibilityForPdf() {
+      const notesSection = document.getElementById("optional-notes");
+      const notesInput = document.getElementById("notesInput");
+      const notesPrint = document.getElementById("notesPrint");
+      if (!notesSection || !notesInput || !notesPrint) return;
+
+      const val = (notesInput.value || "");
+      const hasNotes = val.trim().length > 0;
+
+      // Hide whole section if empty
+      notesSection.classList.toggle("hideForPdf", !hasNotes);
+
+      // If we are including notes, mirror into the print div
+      if (hasNotes) {
+        notesPrint.textContent = val;
+      } else {
+        notesPrint.textContent = "";
+      }
+    }
+
+    function setPdfMode(on) {
+      document.documentElement.classList.toggle("pdfMode", !!on);
+    }
+
+    function generatePDF() {
+      if (typeof window.jspdf === 'undefined') {
+        alert("Error: PDF generation library (jsPDF) failed to load.");
+        return;
+      }
+
+      if (!signaturePad || signaturePad.isEmpty()) {
+        alert("Please sign before submitting.");
+        return;
+      }
+
+      // Prepare PDF view
+      setPdfMode(true);
+      setNotesVisibilityForPdf();
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF("p", "mm", "a4");
+      const captureEl = document.getElementById("printRoot");
+      const signatureCanvas = document.getElementById("signatureCanvas");
+
+      html2canvas(captureEl, {
+        scale: 1.75,
+        logging: false,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      })
+        .then(canvasContent => {
+          const imgDataContent = canvasContent.toDataURL("image/png");
+
+          const margin = 10;
+          const imgWidth = 190;
+          let imgHeight = (canvasContent.height * imgWidth) / canvasContent.width;
+
+          const maxContentHeight = 220;
+          if (imgHeight > maxContentHeight) imgHeight = maxContentHeight;
+
+          doc.addImage(imgDataContent, "PNG", margin, margin, imgWidth, imgHeight, "", "FAST");
+
+          const signatureStartY = imgHeight + margin + 15;
+          const imgDataSignature = signatureCanvas.toDataURL("image/png");
+
+          doc.setFontSize(12);
+          doc.text("Patient's Signature:", margin + 5, signatureStartY - 5);
+          doc.setLineWidth(0.5);
+          doc.rect(margin, signatureStartY, imgWidth, 40);
+          doc.addImage(imgDataSignature, "PNG", margin + 5, signatureStartY + 5, imgWidth - 10, 30);
+
+          doc.save("treatment-plan.pdf");
+
+          // Send webhooks on PDF generation
+          const payload = buildPayload();
+          sendAllWebhooks(payload).catch(err => console.error("Webhook error on PDF save:", err));
+        })
+        .catch(err => {
+          console.error("Error generating PDF:", err);
+          alert("An error occurred while generating the PDF. Please try again.");
+        })
+        .finally(() => {
+          // Restore normal view
+          setPdfMode(false);
+          const notesSection = document.getElementById("optional-notes");
+          if (notesSection) notesSection.classList.remove("hideForPdf");
+        });
+    }
+
+    // ============================================================
+    // Init
+    // ============================================================
+    document.addEventListener("DOMContentLoaded", function () {
+      const todayIso = getLocalDateISO();
+      document.getElementById("todayDate").value = todayIso;
+      const d = new Date();
+      document.getElementById("headerTodayText").textContent =
+        `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+
+      populateProviders();
+      populateDropdowns();
+      populateAddonCheckboxPanel();
+      initSupplementsSearch(); // Initialize supplements search
+
+      document.getElementById("treatmentOptions").addEventListener("change", updateDetails);
+
+      const canvas = document.getElementById("signatureCanvas");
+      signaturePad = new SignaturePad(canvas, {
+        backgroundColor: "rgba(255,255,255,0)",
+        penColor: "rgb(0,0,0)",
+        minWidth: 0.5,
+        maxWidth: 1.5,
+        velocityFilterWeight: 0.0
+      });
+
+      document.getElementById("clearSignature").addEventListener("click", function () {
+        signaturePad.clear();
+      });
+
+      const dp = document.getElementById("downPaymentInput");
+      if (dp) {
+        dp.value = DOWN_PAYMENT_DEFAULT;
+        dp.addEventListener("input", calculateTotal);
+        dp.addEventListener("change", calculateTotal);
+      }
+
+      resizeCanvas();
+      handlePrefilledTokens();
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+
+    // Prefill support — clear any unresolved CRM tokens + phone mask
+    function handlePrefilledTokens() {
+      const ids = ["patientName", "patientEmail", "patientPhone", "chiefComplaint", "bilateralScales"];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // If CRM didn't replace the token, clear so placeholder shows
+        if (el.value && /\{\{.*\}\}/.test(el.value)) {
+          el.value = "";
+        }
+      });
+
+      // Phone mask: (XXX) XXX-XXXX
+      const phoneEl = document.getElementById("patientPhone");
+      if (phoneEl) {
+        phoneEl.addEventListener("input", function (e) {
+          let v = e.target.value.replace(/\D/g, "").substring(0, 10);
+          if (v.length >= 7) {
+            v = "(" + v.substring(0, 3) + ") " + v.substring(3, 6) + "-" + v.substring(6);
+          } else if (v.length >= 4) {
+            v = "(" + v.substring(0, 3) + ") " + v.substring(3);
+          } else if (v.length >= 1) {
+            v = "(" + v;
+          }
+          e.target.value = v;
+        });
+      }
+    }
+  </script>
+</body>
+
+</html>
