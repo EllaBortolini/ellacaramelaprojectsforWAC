@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Progress Exam 1 — Well Adjusted Chiropractic</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #D1B37D;
+      --accent-dark: #b8964f;
+      --shadow: 0 2px 10px rgba(0,0,0,.06);
+      --radius: 14px;
+      --green: #16a34a;
+      --red: #dc2626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      padding: 18px;
+      position: relative;
+    }
+
+    /* Watermark */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: 480px;
+      height: 480px;
+      background: url('https://assets.cdn.filesafe.space/Hoy53z3hkBCQoCR1ayzn/media/6993c00a8ef1b98a1834ffb3.jpeg') no-repeat center;
+      background-size: contain;
+      opacity: 0.06;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Phase indicator ── */
+    .phase-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 20px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .phase-step {
+      flex: 1;
+      padding: 13px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      border-right: 1px solid var(--line);
+      position: relative;
+      transition: all .3s;
+    }
+
+    .phase-step:last-child { border-right: none; }
+
+    .phase-step.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .phase-step.done {
+      background: #f0fdf4;
+      color: var(--green);
+    }
+
+    .phase-step .step-num {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: .8;
+      margin-bottom: 2px;
+    }
+
+    /* ── Header banner ── */
+    .header-banner {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 22px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-banner img { height: 36px; }
+
+    .header-right {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.6;
+    }
+
+    .header-right strong { color: var(--ink); }
+
+    /* ── Patient data cards ── */
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .data-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .data-card .lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 3px;
+    }
+
+    .data-card .val {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .data-card .val.accent { color: var(--accent-dark); }
+
+    /* ── Cards ── */
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      font-size: 15px;
+      color: var(--accent);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Questions ── */
+    .question-block {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .question-block:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .q-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .q-num {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 24px;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Radio + Checkbox options */
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background .15s, border-color .15s;
+      background: #fafbfc;
+    }
+
+    .option-item:hover { background: #f0f4ff; border-color: #c7d2fe; }
+
+    .option-item.selected {
+      background: #fffbeb;
+      border-color: var(--accent);
+    }
+
+    .option-item input[type="radio"],
+    .option-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Star rating */
+    .star-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .star-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      background: #fafbfc;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+    }
+
+    .star-btn:hover { border-color: var(--accent); background: #fffbeb; }
+    .star-btn.selected { border-color: var(--accent); background: #fffbeb; }
+
+    .star-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+      padding: 0 2px;
+    }
+
+    /* Text inputs */
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      font-family: Arial, sans-serif;
+      color: var(--ink);
+    }
+
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { min-height: 88px; resize: vertical; }
+
+    /* Open text field within checkbox */
+    .option-open-input {
+      margin-top: 8px;
+      display: none;
+    }
+    .option-item.selected .option-open-input { display: block; }
+
+    /* ── Checklist (CA section) ── */
+    .checklist { display: flex; flex-direction: column; gap: 8px; }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fafbfc;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1.4;
+      transition: background .15s, border-color .15s;
+    }
+
+    .check-item:hover { background: #f0f4ff; border-color: #c7d2fe; }
+    .check-item.checked { background: #f0fdf4; border-color: #86efac; }
+    .check-item.flag-item { border-left: 3px solid var(--accent); }
+    .check-item.flag-item.flagged { background: #fff7ed; border-color: #fbbf24; border-left-color: var(--red); }
+
+    .check-item input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .check-item label {
+      cursor: pointer;
+      color: var(--ink);
+      font-size: 14px;
+      display: block;
+      margin: 0;
+    }
+
+    .check-item .sub-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── ROM Table ── */
+    .rom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .rom-table th {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 2px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .rom-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+
+    .rom-table tr:last-child td { border-bottom: none; }
+    .rom-normal { font-weight: 600; color: var(--muted); }
+
+    .rom-table input[type="number"] {
+      width: 65px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .rom-table input[type="text"] {
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .section-divider {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin: 14px 0 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap { margin-bottom: 16px; }
+    .progress-bar-bg { height: 5px; background: var(--line); border-radius: 99px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 99px; width: 0%; transition: width .3s; }
+    .progress-lbl { font-size: 12px; color: var(--muted); margin-bottom: 5px; display: flex; justify-content: space-between; }
+
+    /* ── Internal badge ── */
+    .internal-badge {
+      display: inline-block;
+      font-size: 11px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-weight: 600;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      height: 44px;
+      padding: 0 26px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: .2s;
+    }
+
+    .btn-primary:hover { filter: brightness(.92); }
+
+    .btn-secondary {
+      height: 44px;
+      padding: 0 20px;
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 6px;
+      margin-bottom: 30px;
+    }
+
+    /* ── Phase visibility ── */
+    .phase-patient { display: block; }
+    .phase-review  { display: none;  }
+    .phase-ca      { display: none;  }
+
+    body.review-phase .phase-patient { display: none; }
+    body.review-phase .phase-review  { display: block; }
+    body.review-phase .phase-ca      { display: none; }
+
+    body.ca-phase .phase-patient { display: none; }
+    body.ca-phase .phase-review  { display: none; }
+    body.ca-phase .phase-ca      { display: block; }
+
+    /* ── Review page styles ── */
+    .review-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 22px;
+      margin-bottom: 14px;
+    }
+    .review-q {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+    .review-a {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .review-a.flagged-ans {
+      color: var(--red);
+    }
+    .flag-banner {
+      background: #fff0f0;
+      border: 1.5px solid var(--red);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .flag-banner .flag-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+    }
+    .flag-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--red);
+    }
+    .flag-row .flag-icon { font-size: 15px; flex-shrink: 0; }
+    .google-banner {
+      background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+      border: 1.5px solid #4caf50;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .google-banner .g-icon { font-size: 28px; }
+    .google-banner .g-text { font-size: 14px; font-weight: 700; color: #2e7d32; }
+    .google-banner .g-sub  { font-size: 12px; color: #388e3c; margin-top: 2px; }
+    .review-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 540px) { .review-grid { grid-template-columns: 1fr; } }
+
+    /* ── PDF mode ── */
+    .pdfMode .no-print   { display: none !important; }
+    .notes-print {
+      display: none;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+      white-space: pre-wrap;
+      min-height: 80px;
+    }
+    .pdfMode .notes-print  { display: block; }
+    .pdfMode .notes-input  { display: none; }
+    .pdfMode .phase-indicator { display: none; }
+
+    /* In PDF mode show both phases */
+    .pdfMode .phase-patient { display: block !important; }
+    .pdfMode .phase-ca      { display: block !important; }
+
+    /* PDF section break label */
+    .pdf-section-label {
+      display: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      letter-spacing: .4px;
+    }
+    .pdfMode .pdf-section-label { display: block; }
+
+    footer {
+      text-align: center;
+      font-size: .82em;
+      color: #bbb;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 640px) {
+      .data-grid { grid-template-columns: 1fr 1fr; }
+      .header-banner { flex-direction: column; }
+      .star-row { gap: 6px; }
+      .star-btn { width: 40px; height: 40px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+
+
+  <!-- ═══════════════════════════════════════
+       PHASE 1 — PATIENT QUESTIONNAIRE
+  ════════════════════════════════════════ -->
+  <div class="phase-patient" id="phasePatient">
+
+    <div class="pdf-section-label">SECTION 1 — PATIENT QUESTIONNAIRE</div>
+
+    <!-- Header -->
+    <div class="header-banner">
+      <img src="https://assets.cdn.filesafe.space/uUGu9qTLe0cEAC8VRMtN/media/67b51f9c32195e2c50c7b5e6.png" alt="Well Adjusted Chiropractic">
+      <div class="header-right">
+        <strong id="p1Name">—</strong><br>
+        Progress Exam 1 &nbsp;·&nbsp; <span id="p1Date">—</span>
+      </div>
+    </div>
+
+    <section>
+      <h2><strong>Progress Exam 1 — Patient Questionnaire</strong></h2>
+
+      <!-- Q1 Star Rating -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">1</span>Rate your experience with Well Adjusted Chiropractic</div>
+        <div class="star-row" id="starRow">
+          <button type="button" class="star-btn" data-val="1" onclick="selectStar(1)">★</button>
+          <button type="button" class="star-btn" data-val="2" onclick="selectStar(2)">★</button>
+          <button type="button" class="star-btn" data-val="3" onclick="selectStar(3)">★</button>
+          <button type="button" class="star-btn" data-val="4" onclick="selectStar(4)">★</button>
+          <button type="button" class="star-btn" data-val="5" onclick="selectStar(5)">★</button>
+        </div>
+        <div class="star-label"><span>Not awesome</span><span>Awesome!</span></div>
+        <input type="hidden" id="q1Stars" value="">
+      </div>
+
+      <!-- Q2 Health Goals -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">2</span>What are your Health Goals at this point in your care?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="toggleOption(this)">
+            <input type="checkbox" name="q2" value="Correct symptoms / Body Signals">
+            Correct symptoms / Body Signals
+            <div class="option-open-input"><input type="text" placeholder="Describe..." onclick="event.stopPropagation()"></div>
+          </label>
+          <label class="option-item" onclick="toggleOption(this)">
+            <input type="checkbox" name="q2" value="Improve function of body systems">
+            Improve function of body systems
+            <div class="option-open-input"><input type="text" placeholder="Describe..." onclick="event.stopPropagation()"></div>
+          </label>
+          <label class="option-item" onclick="toggleOption(this)">
+            <input type="checkbox" name="q2" value="Reach potential / optimal health">
+            Reach potential / optimal health
+            <div class="option-open-input"><input type="text" placeholder="Describe..." onclick="event.stopPropagation()"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">3</span>Have we done a good job explaining the objective of your care plan? Do you understand why you are getting adjusted?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="selectRadio(this,'q3')"><input type="radio" name="q3" value="Yes"> Yes</label>
+          <label class="option-item" onclick="selectRadio(this,'q3')"><input type="radio" name="q3" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">4</span>Has the doctor fully explained the cause of your problem? Do you understand your problem (Subluxation)?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="selectRadio(this,'q4')"><input type="radio" name="q4" value="Yes"> Yes</label>
+          <label class="option-item" onclick="selectRadio(this,'q4')"><input type="radio" name="q4" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">5</span>Do you understand the difference between your symptom and the problem (Subluxation)?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="selectRadio(this,'q5')"><input type="radio" name="q5" value="Yes"> Yes</label>
+          <label class="option-item" onclick="selectRadio(this,'q5')"><input type="radio" name="q5" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">6</span>What Phase of Subluxation are you in?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="selectRadio(this,'q6')"><input type="radio" name="q6" value="Phase 1"> Phase 1</label>
+          <label class="option-item" onclick="selectRadio(this,'q6')"><input type="radio" name="q6" value="Phase 2"> Phase 2</label>
+          <label class="option-item" onclick="selectRadio(this,'q6')"><input type="radio" name="q6" value="Phase 3"> Phase 3</label>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">7</span>How long has this problem been in your spine? (years)</div>
+        <input type="number" id="q7years" min="0" max="99" placeholder="Enter number of years" style="max-width:220px;">
+      </div>
+
+      <!-- Q8 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">8</span>Do you know the 3 "Legs" of The 3 Legged Stool of Correction? Select all that you know:</div>
+        <div class="options-list">
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q8" value="Breaking Bad Habits"> Breaking Bad Habits</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q8" value="Exercise"> Exercise</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q8" value="Nutrition"> Nutrition</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q8" value="Adjustments"> Adjustments</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q8" value="Sleep Patterns"> Sleep Patterns</label>
+        </div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">9</span>Do you understand the doctor's recommendation for your care?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="selectRadio(this,'q9')"><input type="radio" name="q9" value="Yes"> Yes</label>
+          <label class="option-item" onclick="selectRadio(this,'q9')"><input type="radio" name="q9" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- Q10 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">10</span>How often per week are you currently scheduled to be adjusted?</div>
+        <input type="number" id="q10freq" min="1" max="7" placeholder="Times per week" style="max-width:200px;">
+      </div>
+
+      <!-- Q11 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">11</span>Have you been following the doctor's recommendations and keeping your adjustment schedule?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="selectRadio(this,'q11')"><input type="radio" name="q11" value="Yes"> Yes</label>
+          <label class="option-item" onclick="selectRadio(this,'q11')"><input type="radio" name="q11" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- Q12 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">12</span>How could we help you maximize your results and reach your goals?</div>
+        <textarea id="q12text" class="notes-input" placeholder="Share your thoughts..."></textarea>
+        <div id="q12print" class="notes-print"></div>
+      </div>
+
+      <!-- Q13 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">13</span>Have your family members had a Spine and Nerve System Check-up yet?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="selectRadio(this,'q13')"><input type="radio" name="q13" value="Yes"> Yes</label>
+          <label class="option-item" onclick="selectRadio(this,'q13')"><input type="radio" name="q13" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- Q14 -->
+      <div class="question-block">
+        <div class="q-label"><span class="q-num">14</span>Are there particular topics you are interested in learning more about?</div>
+        <div class="options-list">
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q14" value="Diet / Weight-Loss"> Diet / Weight-Loss</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q14" value="Energy"> Energy</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q14" value="Stress"> Stress</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q14" value="Sleeping"> Sleeping</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q14" value="Immune System"> Immune System</label>
+          <label class="option-item" onclick="toggleOption(this)"><input type="checkbox" name="q14" value="Raising Healthy Children"> Raising Healthy Children</label>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Patient submit button -->
+    <div class="action-row no-print">
+      <button class="btn-primary" onclick="advanceToReview()">Patient Done — Review Responses</button>
+    </div>
+
+  </div><!-- /phase-patient -->
+
+
+
+
+  <!-- ═══════════════════════════════════════
+       PHASE 2 — CA REVIEW OF PATIENT ANSWERS
+  ════════════════════════════════════════ -->
+  <div class="phase-review no-print" id="phaseReview">
+
+    <!-- Header -->
+    <div class="header-banner">
+      <div>
+        <img src="https://assets.cdn.filesafe.space/uUGu9qTLe0cEAC8VRMtN/media/67b51f9c32195e2c50c7b5e6.png" alt="Well Adjusted Chiropractic" style="margin-bottom:8px; display:block;">
+        <span style="font-size:16px; font-weight:700;" id="rv_name">—</span>
+        <span class="internal-badge" style="margin-left:8px;">CA Review</span>
+      </div>
+      <div class="header-right">
+        Progress Exam 1<br>
+        <strong id="rv_date">—</strong><br>
+        <span style="font-size:12px; color:var(--muted);">Review patient responses before proceeding</span>
+      </div>
+    </div>
+
+    <!-- Flags (shown only if any No answers) -->
+    <div id="rv_flagBanner" class="flag-banner" style="display:none;">
+      <div class="flag-title">Flagged Responses — Requires Attention</div>
+      <div id="rv_flagList"></div>
+    </div>
+
+    <!-- Google review nudge (shown only if 5 stars) -->
+    <div id="rv_googleBanner" class="google-banner" style="display:none;">
+      <div class="g-icon">⭐</div>
+      <div>
+        <div class="g-text">Patient rated their experience 5 stars</div>
+        <div class="g-sub">Ask for a Google review before they leave — or the automated SMS will send after the visit.</div>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="review-card">
+      <div style="font-size:13px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.4px; margin-bottom:14px;">Patient Questionnaire Summary</div>
+      <div class="review-grid" id="rv_grid"></div>
+    </div>
+
+    <!-- Full responses -->
+    <div class="review-card" id="rv_fullBlock">
+      <div style="font-size:13px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.4px; margin-bottom:14px;">All Responses</div>
+      <div id="rv_allAnswers"></div>
+    </div>
+
+    <div class="action-row no-print" style="display:flex; gap:12px; flex-wrap:wrap;">
+      <button class="btn-secondary" onclick="backToPatient()">← Back to Patient</button>
+      <button class="btn-primary" onclick="advanceToCA()">Confirm &amp; Continue to Exams →</button>
+    </div>
+
+  </div><!-- /phase-review -->
+
+  <!-- ═══════════════════════════════════════
+       PHASE 2 — CA ROUTING & EXAMS
+  ════════════════════════════════════════ -->
+  <div class="phase-ca" id="phaseCA">
+
+    <div class="pdf-section-label">SECTION 2 — CA ROUTING &amp; EXAM RESULTS</div>
+
+    <!-- Header -->
+    <div class="header-banner">
+      <div>
+        <img src="https://assets.cdn.filesafe.space/uUGu9qTLe0cEAC8VRMtN/media/67b51f9c32195e2c50c7b5e6.png" alt="Well Adjusted Chiropractic" style="margin-bottom:8px; display:block;">
+        <span style="font-size:16px; font-weight:700;" id="p2Name">—</span>
+        <span class="internal-badge" style="margin-left:8px;">Internal Use Only</span>
+      </div>
+      <div class="header-right">
+        Progress Exam 1<br>
+        <strong id="p2Date">—</strong><br>
+        Provider: <strong id="p2Provider">—</strong>
+      </div>
+    </div>
+
+    <!-- Patient data cards -->
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="lbl">Chief Complaint</div>
+        <div class="val accent" id="caCC">—</div>
+      </div>
+      <div class="data-card">
+        <div class="lbl">Phase of Degeneration</div>
+        <div class="val" id="caPhase">—</div>
+      </div>
+      <div class="data-card">
+        <div class="lbl">Original Balance</div>
+        <div class="val" id="caOGBal">—</div>
+      </div>
+      <div class="data-card">
+        <div class="lbl">Care Plan Start</div>
+        <div class="val" id="caCPStart">—</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-wrap no-print">
+      <div class="progress-lbl"><span>Routing Checklist</span><span id="progressText">0 / 13</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    </div>
+
+    <!-- Section 1: Pre-Exam -->
+    <section>
+      <h2><strong>1 — Pre-Exam Confirmation</strong></h2>
+      <div class="checklist">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <div><label>Internal use questions confirmed</label><div class="sub-label">CC, Goal, OG Balance, Phase reviewed from contact record</div></div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <label>Patient questionnaire completed and reviewed</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Flag Review -->
+    <section>
+      <h2><strong>2 — Patient Response Flags</strong></h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Check any question where the patient answered <strong>No</strong>. These will be flagged for the doctor.</p>
+      <div class="checklist">
+        <div class="check-item flag-item" id="flagQ3" onclick="toggleFlag(this)">
+          <input type="checkbox" class="flag-check">
+          <div><label>Q3 — Patient answered No</label><div class="sub-label">Does not understand why they are getting adjusted</div></div>
+        </div>
+        <div class="check-item flag-item" id="flagQ4" onclick="toggleFlag(this)">
+          <input type="checkbox" class="flag-check">
+          <div><label>Q4 — Patient answered No</label><div class="sub-label">Does not understand their problem (Subluxation)</div></div>
+        </div>
+        <div class="check-item flag-item" id="flagQ5" onclick="toggleFlag(this)">
+          <input type="checkbox" class="flag-check">
+          <div><label>Q5 — Patient answered No</label><div class="sub-label">Does not understand symptom vs. problem</div></div>
+        </div>
+        <div class="check-item flag-item" id="flagQ9" onclick="toggleFlag(this)">
+          <input type="checkbox" class="flag-check">
+          <div><label>Q9 — Patient answered No</label><div class="sub-label">Does not understand doctor's recommendation</div></div>
+        </div>
+        <div class="check-item flag-item" id="flagQ11" onclick="toggleFlag(this)">
+          <input type="checkbox" class="flag-check">
+          <div><label>Q11 — Patient answered No</label><div class="sub-label">Has not been following the adjustment schedule</div></div>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Concerns raised by patient</div>
+        <textarea id="reviewNotes" class="notes-input" placeholder="Document any concerns, complaints, or questions raised during review..."></textarea>
+        <div id="reviewNotesPrint" class="notes-print"></div>
+      </div>
+      <div class="section-divider">Google Review</div>
+      <div class="checklist">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <div><label>Patient rated 5 stars — Google review SMS will be sent automatically</label><div class="sub-label">No action needed.</div></div>
+        </div>
+        <div class="check-item flag-item" onclick="toggleFlag(this)">
+          <input type="checkbox" class="flag-check">
+          <div><label>Patient rated less than 5 stars — concern addressed immediately</label><div class="sub-label">Pause exam. Address before proceeding.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Exams -->
+    <section>
+      <h2><strong>3 — Exams Completed</strong></h2>
+      <div class="checklist" style="margin-bottom:16px;">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <label>Patient brought to private room</label>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <div><label>Nerve scan completed</label><div class="sub-label">First time — profile created in Insight App</div></div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <div><label>Posture comparison completed</label><div class="sub-label">Name, DOB, VRC number confirmed in PostureScreen</div></div>
+        </div>
+      </div>
+
+      <!-- ROM Table -->
+      <div class="section-divider">Range of Motion</div>
+      <table class="rom-table">
+        <thead>
+          <tr>
+            <th>Movement</th><th>Normal</th><th>Patient (°)</th><th>Pain Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" style="font-weight:700;color:var(--muted);font-size:11px;padding-top:10px;text-transform:uppercase;letter-spacing:.5px;">Cervical</td></tr>
+          <tr><td>Flexion</td><td class="rom-normal">50°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Extension</td><td class="rom-normal">60°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Left Lat Flex</td><td class="rom-normal">45°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Right Lat Flex</td><td class="rom-normal">45°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Left Rotation</td><td class="rom-normal">80°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Right Rotation</td><td class="rom-normal">80°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td colspan="4" style="font-weight:700;color:var(--muted);font-size:11px;padding-top:14px;text-transform:uppercase;letter-spacing:.5px;">Lumbar</td></tr>
+          <tr><td>Flexion</td><td class="rom-normal">60°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Extension</td><td class="rom-normal">25°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Left Lat Flex</td><td class="rom-normal">25°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Right Lat Flex</td><td class="rom-normal">25°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Left Rotation</td><td class="rom-normal">30°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+          <tr><td>Right Rotation</td><td class="rom-normal">30°</td><td><input type="number" min="0" max="90" placeholder="—"></td><td><input type="text" placeholder="None / Location"></td></tr>
+        </tbody>
+      </table>
+
+      <!-- Bilateral Balances -->
+      <div class="section-divider" style="margin-top:16px;">Bilateral Balances</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Current Balance — Left</div>
+          <input type="number" id="curBalLeft" placeholder="e.g. 4">
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Current Balance — Right</div>
+          <input type="number" id="curBalRight" placeholder="e.g. 6">
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Scheduling -->
+    <section>
+      <h2><strong>4 — Scheduling</strong></h2>
+      <div class="checklist">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <label>Next visit scheduled for ROF (Report of Findings)</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Finalize -->
+    <section>
+      <h2><strong>5 — Finalize &amp; Upload</strong></h2>
+      <div class="checklist">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <div><label>Posture Screen finalized</label><div class="sub-label">Points placed, comparative report created, saved to Progress Exam folder</div></div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <div><label>Re-Exam report uploaded to Posture Dropbox</label><div class="sub-label">Only if this is a Re-Exam appointment</div></div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <input type="checkbox" class="route-check">
+          <div><label>Final Progress Exam uploaded to Genesis patient profile</label><div class="sub-label">Named correctly: PE1</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: CA Notes -->
+    <section>
+      <h2><strong>6 — CA Notes for Doctor</strong></h2>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Flags, concerns, or observations to pass to the doctor</div>
+      <textarea id="caNotes" class="notes-input" placeholder="Document anything the doctor should be aware of before the next adjustment..."></textarea>
+      <div id="caNotesPrint" class="notes-print"></div>
+    </section>
+
+    <!-- CA Actions -->
+    <div class="action-row no-print">
+      <button class="btn-primary" id="submitBtn" onclick="submitAll()">Generate PDF &amp; Send to GHL</button>
+      <button class="btn-secondary" onclick="backToPatient()">← Back to Questionnaire</button>
+    </div>
+
+  </div><!-- /phase-ca -->
+
+  <footer>Well Adjusted Chiropractic &nbsp;·&nbsp; Progress Exam 1 &nbsp;·&nbsp; Arlington, TX</footer>
+</div><!-- /wrap -->
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  // ── Config ──
+  const WEBHOOK = 'https://services.leadconnectorhq.com/hooks/oej0L0NKPdaUHsXpkfht/webhook-trigger/918b97a5-9a51-4d4a-9a93-f930c6b7be79';
+
+  // ── URL Autofill ──
+  let contactName = '', contactEmail = '';
+
+  function handleUrlAutofill() {
+    const p = new URLSearchParams(window.location.search);
+    contactName  = p.get('name')      || p.get('contact_name')  || '';
+    contactEmail = p.get('email')     || p.get('contact_email') || '';
+    const cc     = p.get('complaint') || p.get('chief_complaint') || '';
+    const phase  = p.get('phase')     || p.get('degeneration_phase') || '';
+    const ogbal  = p.get('og_balance')|| p.get('original_balance') || '';
+    const cpstart= p.get('cp_start')  || p.get('care_plan_start') || '';
+    const provider=p.get('provider')  || p.get('provider_name') || '';
+    const today  = new Date().toLocaleDateString('en-US');
+
+    // Phase 1 header
+    setText('p1Name', contactName || 'Patient');
+    setText('p1Date', today);
+
+    // Phase 2 header + cards
+    setText('p2Name',     contactName || 'Patient');
+    setText('p2Date',     today);
+    setText('p2Provider', provider || '—');
+    setText('caCC',       cc       || '—');
+    setText('caPhase',    phase    || '—');
+    setText('caOGBal',    ogbal    || '—');
+    if (cpstart) {
+      const d = new Date(cpstart);
+      setText('caCPStart', isNaN(d) ? cpstart : d.toLocaleDateString('en-US'));
+    } else {
+      setText('caCPStart', '—');
+    }
+
+    // Clear unresolved GHL tokens
+    ['p1Name','p2Name','p2Provider','caCC','caPhase','caOGBal','caCPStart'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && /\{\{.*\}\}/.test(el.textContent)) el.textContent = '—';
+    });
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  // ── Star Rating ──
+  function selectStar(val) {
+    document.getElementById('q1Stars').value = val;
+    document.querySelectorAll('.star-btn').forEach(btn => {
+      btn.classList.toggle('selected', parseInt(btn.dataset.val) <= val);
+    });
+  }
+
+  // ── Option toggles ──
+  function selectRadio(item, name) {
+    document.querySelectorAll(`[name="${name}"]`).forEach(r => {
+      r.closest('.option-item')?.classList.remove('selected');
+    });
+    item.classList.add('selected');
+    const radio = item.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+
+    // Auto-flag CA section
+    autoFlag(name);
+  }
+
+  function toggleOption(item) {
+    item.classList.toggle('selected');
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = !cb.checked;
+  }
+
+  // ── Auto-flag CA based on patient answers ──
+  function autoFlag(name) {
+    const flagMap = { q3: 'flagQ3', q4: 'flagQ4', q5: 'flagQ5', q9: 'flagQ9', q11: 'flagQ11' };
+    if (!flagMap[name]) return;
+    const selected = document.querySelector(`[name="${name}"]:checked`);
+    if (!selected) return;
+    const flagItem = document.getElementById(flagMap[name]);
+    if (!flagItem) return;
+    const isNo = selected.value === 'No';
+    const cb   = flagItem.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = isNo;
+    flagItem.classList.toggle('flagged', isNo);
+  }
+
+  // ── Phase navigation ──
+  // ── Phase navigation ──
+  function advanceToReview() {
+    buildReviewPage();
+    document.body.classList.remove('ca-phase');
+    document.body.classList.add('review-phase');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function advanceToCA() {
+    document.body.classList.remove('review-phase');
+    document.body.classList.add('ca-phase');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateProgress();
+  }
+
+  function backToPatient() {
+    document.body.classList.remove('ca-phase', 'review-phase');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Build review page from patient answers ──
+  function buildReviewPage() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Populate header
+    const today = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const rvName = document.getElementById('rv_name');
+    const rvDate = document.getElementById('rv_date');
+    if (rvName) rvName.textContent = contactName || '—';
+    if (rvDate) rvDate.textContent = today;
+
+    // Collect answers
+    const stars   = document.getElementById('q1Stars')?.value || '0';
+    const q2vals  = [...document.querySelectorAll('[name="q2"]:checked')].map(c => c.value).join(', ') || '—';
+    const q3      = document.querySelector('[name="q3"]:checked')?.value  || '—';
+    const q4      = document.querySelector('[name="q4"]:checked')?.value  || '—';
+    const q5      = document.querySelector('[name="q5"]:checked')?.value  || '—';
+    const q6      = document.querySelector('[name="q6"]:checked')?.value  || '—';
+    const q7      = document.getElementById('q7years')?.value             || '—';
+    const q8vals  = [...document.querySelectorAll('[name="q8"]:checked')].map(c => c.value).join(', ') || '—';
+    const q9      = document.querySelector('[name="q9"]:checked')?.value  || '—';
+    const q10     = document.getElementById('q10freq')?.value             || '—';
+    const q11     = document.querySelector('[name="q11"]:checked')?.value || '—';
+    const q12     = document.getElementById('q12text')?.value?.trim()     || '—';
+    const q13     = document.querySelector('[name="q13"]:checked')?.value || '—';
+    const q14vals = [...document.querySelectorAll('[name="q14"]:checked')].map(c => c.value).join(', ') || '—';
+
+    // ── Flag banner ──
+    const flagDefs = [
+      { q: 'Q3 — Have we explained the objective of your care plan?', ans: q3 },
+      { q: 'Q4 — Has the doctor explained the cause of your problem (Subluxation)?', ans: q4 },
+      { q: 'Q5 — Do you understand the difference between your symptom and the problem?', ans: q5 },
+      { q: "Q9 — Do you understand the doctor's recommendation for your care?", ans: q9 },
+      { q: "Q11 — Have you been following the doctor's recommendations and keeping your schedule?", ans: q11 },
+    ].filter(f => f.ans === 'No');
+
+    const flagBanner = document.getElementById('rv_flagBanner');
+    const flagList   = document.getElementById('rv_flagList');
+    if (flagDefs.length > 0) {
+      flagList.innerHTML = flagDefs.map(f =>
+        `<div class="flag-row"><span class="flag-icon">⚑</span><span><strong>No</strong> — ${f.q}</span></div>`
+      ).join('');
+      flagBanner.style.display = 'block';
+    } else {
+      flagBanner.style.display = 'none';
+    }
+
+    // ── Google review banner ──
+    const gBanner = document.getElementById('rv_googleBanner');
+    if (gBanner) gBanner.style.display = parseInt(stars) >= 5 ? 'flex' : 'none';
+
+    // ── Summary grid (key metrics) ──
+    const starDisplay = '★'.repeat(parseInt(stars)||0) + '☆'.repeat(5-(parseInt(stars)||0));
+    const grid = document.getElementById('rv_grid');
+    if (grid) {
+      grid.innerHTML = [
+        { label: 'Experience Rating', val: `${starDisplay} (${stars}/5)`, flag: false },
+        { label: 'Phase of Subluxation', val: q6, flag: false },
+        { label: 'Years with Problem', val: q7 !== '—' ? q7 + ' years' : '—', flag: false },
+        { label: 'Adjustment Frequency', val: q10 !== '—' ? q10 + 'x / week' : '—', flag: false },
+        { label: 'Following Schedule', val: q11, flag: q11 === 'No' },
+        { label: 'Family Check-up Interest', val: q13, flag: false },
+      ].map(item => `
+        <div>
+          <div class="review-q">${item.label}</div>
+          <div class="review-a ${item.flag ? 'flagged-ans' : ''}">${item.val}</div>
+        </div>
+      `).join('');
+    }
+
+    // ── All answers ──
+    const allAnswers = document.getElementById('rv_allAnswers');
+    if (allAnswers) {
+      const rows = [
+        { n:'Q2',  label:'Health Goals',                                              val: q2vals, flag: false },
+        { n:'Q3',  label:'Care plan objective explained?',                            val: q3,     flag: q3  === 'No' },
+        { n:'Q4',  label:'Cause of problem (Subluxation) explained?',                 val: q4,     flag: q4  === 'No' },
+        { n:'Q5',  label:'Symptom vs problem understood?',                            val: q5,     flag: q5  === 'No' },
+        { n:'Q8',  label:'3 Legged Stool — legs identified',                          val: q8vals, flag: false },
+        { n:'Q9',  label:"Doctor's recommendation understood?",                       val: q9,     flag: q9  === 'No' },
+        { n:'Q11', label:"Following doctor's recommendations and adjustment schedule?",val: q11,    flag: q11 === 'No' },
+        { n:'Q12', label:'Patient feedback',                                           val: q12,    flag: false },
+        { n:'Q14', label:'Topics of interest',                                         val: q14vals,flag: false },
+      ];
+
+      allAnswers.innerHTML = rows.map(r => `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--line); gap:12px;">
+          <div>
+            <span style="font-size:11px; font-weight:700; color:var(--accent); margin-right:6px;">${r.n}</span>
+            <span style="font-size:13px; color:var(--muted);">${r.label}</span>
+          </div>
+          <div style="font-size:13px; font-weight:700; color:${r.flag ? 'var(--red)' : 'var(--ink)'}; text-align:right; flex-shrink:0; max-width:55%;">${r.val}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // ── Checklist ──
+  function toggleCheck(item) {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    item.classList.toggle('checked', cb.checked);
+    updateProgress();
+  }
+
+  function toggleFlag(item) {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    item.classList.toggle('flagged', cb.checked);
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const all   = document.querySelectorAll('.route-check');
+    const done  = document.querySelectorAll('.route-check:checked');
+    const total = all.length;
+    const count = done.length;
+    const pct   = total ? Math.round((count / total) * 100) : 0;
+    const fill  = document.getElementById('progressFill');
+    const lbl   = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (lbl)  lbl.textContent  = `${count} / ${total}`;
+  }
+
+  // ── Collect all data ──
+  function collectQuestionnaire() {
+    const stars  = document.getElementById('q1Stars')?.value || '—';
+    const q2vals = [...document.querySelectorAll('[name="q2"]:checked')].map(c => c.value).join(', ') || '—';
+    const q3     = document.querySelector('[name="q3"]:checked')?.value  || '—';
+    const q4     = document.querySelector('[name="q4"]:checked')?.value  || '—';
+    const q5     = document.querySelector('[name="q5"]:checked')?.value  || '—';
+    const q6     = document.querySelector('[name="q6"]:checked')?.value  || '—';
+    const q7     = document.getElementById('q7years')?.value             || '—';
+    const q8vals = [...document.querySelectorAll('[name="q8"]:checked')].map(c => c.value).join(', ') || '—';
+    const q9     = document.querySelector('[name="q9"]:checked')?.value  || '—';
+    const q10    = document.getElementById('q10freq')?.value             || '—';
+    const q11    = document.querySelector('[name="q11"]:checked')?.value || '—';
+    const q12    = document.getElementById('q12text')?.value?.trim()     || '—';
+    const q13    = document.querySelector('[name="q13"]:checked')?.value || '—';
+    const q14vals= [...document.querySelectorAll('[name="q14"]:checked')].map(c => c.value).join(', ') || '—';
+
+    return { stars, q2vals, q3, q4, q5, q6, q7, q8vals, q9, q10, q11, q12, q13, q14vals };
+  }
+
+  function collectROM() {
+    const cervMov  = ['Flexion','Extension','Left Lat Flex','Right Lat Flex','Left Rotation','Right Rotation'];
+    const cervNorm = [50,60,45,45,80,80];
+    const lumbMov  = ['Flexion','Extension','Left Lat Flex','Right Lat Flex','Left Rotation','Right Rotation'];
+    const lumbNorm = [60,25,25,25,30,30];
+
+    const rows = document.querySelectorAll('.rom-table tbody tr');
+    let cerv = [], lumb = [], sec = '';
+    rows.forEach(row => {
+      const fc = row.querySelector('td');
+      if (!fc) return;
+      const t = fc.textContent.trim().toUpperCase();
+      if (t === 'CERVICAL') { sec = 'C'; return; }
+      if (t === 'LUMBAR')   { sec = 'L'; return; }
+      const ins = row.querySelectorAll('input');
+      if (ins.length >= 2) {
+        const e = { movement: fc.textContent.trim(), deg: ins[0].value || '—', pain: ins[1].value || 'None' };
+        if (sec === 'C') cerv.push(e);
+        if (sec === 'L') lumb.push(e);
+      }
+    });
+
+    const balL = document.getElementById('curBalLeft')?.value  || '—';
+    const balR = document.getElementById('curBalRight')?.value || '—';
+
+    let note = `PROGRESS EXAM 1 — ROM & EXAM RESULTS\n`;
+    note += `Patient: ${contactName || '—'} | Email: ${contactEmail || '—'}\n`;
+    note += `Date: ${new Date().toLocaleDateString('en-US')}\n\n`;
+    note += `CERVICAL ROM\n${'─'.repeat(48)}\n`;
+    note += `${'Movement'.padEnd(18)} ${'Normal'.padEnd(8)} ${'Patient'.padEnd(10)} Pain\n`;
+    cerv.forEach((r,i) => { note += `${r.movement.padEnd(18)} ${String(cervNorm[i]+'°').padEnd(8)} ${String(r.deg+'°').padEnd(10)} ${r.pain}\n`; });
+    note += `\nLUMBAR ROM\n${'─'.repeat(48)}\n`;
+    note += `${'Movement'.padEnd(18)} ${'Normal'.padEnd(8)} ${'Patient'.padEnd(10)} Pain\n`;
+    lumb.forEach((r,i) => { note += `${r.movement.padEnd(18)} ${String(lumbNorm[i]+'°').padEnd(8)} ${String(r.deg+'°').padEnd(10)} ${r.pain}\n`; });
+    note += `\nBILATERAL BALANCES\nCurrent Balance: ${balL} / ${balR}\n`;
+
+    const flags = [...document.querySelectorAll('.flag-check:checked')]
+      .map(cb => cb.closest('.check-item')?.querySelector('label')?.textContent?.trim())
+      .filter(Boolean);
+    if (flags.length) { note += `\nFLAGS FOR DOCTOR\n`; flags.forEach(f => { note += `• ${f}\n`; }); }
+
+    const caNotes = document.getElementById('caNotes')?.value?.trim();
+    if (caNotes) { note += `\nCA NOTES\n${caNotes}\n`; }
+
+    return { note, balL, balR, curBal: `${balL}/${balR}` };
+  }
+
+  function collectROMStructured() {
+    const cervNorms = [50,60,45,45,80,80];
+    const lumbNorms = [60,25,25,25,30,30];
+    const rows = document.querySelectorAll('.rom-table tbody tr');
+    let cerv = [], lumb = [], sec = '';
+
+    rows.forEach(row => {
+      const fc = row.querySelector('td');
+      if (!fc) return;
+      const t = fc.textContent.trim().toUpperCase();
+      if (t === 'CERVICAL') { sec = 'C'; return; }
+      if (t === 'LUMBAR')   { sec = 'L'; return; }
+      const ins = row.querySelectorAll('input');
+      if (ins.length >= 2) {
+        const arr   = sec === 'C' ? cerv : lumb;
+        const norms = sec === 'C' ? cervNorms : lumbNorms;
+        arr.push({
+          movement: fc.textContent.trim(),
+          deg:  ins[0].value || '',
+          pain: ins[1].value || 'None',
+          norm: norms[arr.length]
+        });
+      }
+    });
+
+    const balL = document.getElementById('curBalLeft')?.value  || '—';
+    const balR = document.getElementById('curBalRight')?.value || '—';
+
+    let note = `PROGRESS EXAM 1 — ROM & EXAM RESULTS\nPatient: ${contactName||'—'}\nDate: ${new Date().toLocaleDateString('en-US')}\n\n`;
+    note += `CERVICAL ROM\n`;
+    cerv.forEach(r => { note += `  ${r.movement}: ${r.deg||'—'}° (Normal ${r.norm}°) Pain: ${r.pain}\n`; });
+    note += `\nLUMBAR ROM\n`;
+    lumb.forEach(r => { note += `  ${r.movement}: ${r.deg||'—'}° (Normal ${r.norm}°) Pain: ${r.pain}\n`; });
+    note += `\nBilateral Balance: L ${balL} / R ${balR}`;
+
+    const flags = [...document.querySelectorAll('.flag-check:checked')]
+      .map(cb => cb.closest('.check-item')?.querySelector('label')?.textContent?.trim())
+      .filter(Boolean);
+    if (flags.length) { note += `\n\nFLAGS:\n`; flags.forEach(f => { note += `• ${f}\n`; }); }
+
+    const caNotes = document.getElementById('caNotes')?.value?.trim();
+    if (caNotes) note += `\nCA Notes: ${caNotes}`;
+
+    return { cerv, lumb, balL, balR, curBal: `${balL}/${balR}`, note };
+  }
+
+
+  // ── Webhook ──
+  async function sendToGHL(payload) {
+    try {
+      const res = await fetch(WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return res.ok;
+    } catch(e) { console.error(e); return false; }
+  }
+
+  // ── PDF Builder (pure jsPDF, no html2canvas) ──
+
+  const PDF = {
+    GOLD:       [193, 179, 125],
+    DARK:       [31,  45,  61],
+    MID:        [80,  80,  80],
+    LIGHT:      [130, 130, 130],
+    BG:         [248, 248, 248],
+    WHITE:      [255, 255, 255],
+    RED:        [180, 40,  40],
+    GREEN:      [30,  120, 60],
+    L:          14,   // left margin
+    R:          196,  // right edge
+    W:          182,  // usable width
+    PH:         297,  // page height
+    lineH:      6,
+  };
+
+  function newDoc() {
+    const { jsPDF } = window.jspdf;
+    return new jsPDF('p', 'mm', 'a4');
+  }
+
+  function pdfHeader(doc, title, subtitle, y) {
+    // Gold bar top
+    doc.setFillColor(...PDF.GOLD);
+    doc.rect(PDF.L, y, PDF.W, 1.2, 'F');
+    y += 5;
+
+    // Logo placeholder text (WAC branding)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF.LIGHT);
+    doc.text('WELL ADJUSTED CHIROPRACTIC', PDF.L, y);
+
+    // Right side: date
+    const dateStr = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(dateStr, PDF.R, y, { align: 'right' });
+    y += 5;
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...PDF.DARK);
+    doc.text(title, PDF.L, y);
+    y += 6;
+
+    // Subtitle
+    if (subtitle) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...PDF.MID);
+      doc.text(subtitle, PDF.L, y);
+      y += 5;
+    }
+
+    // Gold divider
+    doc.setFillColor(...PDF.GOLD);
+    doc.rect(PDF.L, y, PDF.W, 0.6, 'F');
+    y += 6;
+    return y;
+  }
+
+  function pdfFooter(doc, pageNum, total) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...PDF.LIGHT);
+    doc.text(`Page ${pageNum} of ${total}  •  Well Adjusted Chiropractic  •  Confidential`, PDF.L, PDF.PH - 6);
+    doc.setDrawColor(...PDF.GOLD);
+    doc.setLineWidth(0.4);
+    doc.line(PDF.L, PDF.PH - 9, PDF.R, PDF.PH - 9);
+  }
+
+  function sectionHeading(doc, text, y) {
+    doc.setFillColor(...PDF.BG);
+    doc.roundedRect(PDF.L, y - 4, PDF.W, 7, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF.GOLD);
+    doc.text(text.toUpperCase(), PDF.L + 3, y);
+    return y + 6;
+  }
+
+  function qRow(doc, num, question, answer, y, flag) {
+    const lineColor = flag ? PDF.RED : PDF.GOLD;
+    doc.setDrawColor(...lineColor);
+    doc.setLineWidth(0.4);
+    doc.line(PDF.L, y, PDF.L, y + 10);
+
+    doc.setFillColor(flag ? 255 : PDF.BG[0], flag ? 245 : PDF.BG[1], flag ? 245 : PDF.BG[2]);
+    doc.roundedRect(PDF.L + 2, y - 1, PDF.W - 2, 11, 1, 1, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...PDF.GOLD);
+    doc.text(`Q${num}`, PDF.L + 4, y + 4);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF.MID);
+    const qLines = doc.splitTextToSize(question, 120);
+    doc.text(qLines, PDF.L + 12, y + 3.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(flag ? PDF.RED[0] : PDF.DARK[0], flag ? PDF.RED[1] : PDF.DARK[1], flag ? PDF.RED[2] : PDF.DARK[2]);
+    doc.text(String(answer || '—'), PDF.R - 2, y + 4, { align: 'right' });
+
+    return y + 13;
+  }
+
+  function romTable(doc, rows, label, y) {
+    y = sectionHeading(doc, label + ' Range of Motion', y);
+
+    // Table header
+    doc.setFillColor(...PDF.DARK);
+    doc.rect(PDF.L, y, PDF.W, 6, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...PDF.WHITE);
+    doc.text('Movement',          PDF.L + 3, y + 4);
+    doc.text('Normal',            PDF.L + 70, y + 4, { align: 'center' });
+    doc.text('Patient',           PDF.L + 100, y + 4, { align: 'center' });
+    doc.text('Pain / Note',       PDF.L + 145, y + 4, { align: 'center' });
+    y += 6;
+
+    rows.forEach((r, i) => {
+      const bg = i % 2 === 0 ? PDF.WHITE : PDF.BG;
+      doc.setFillColor(...bg);
+      doc.rect(PDF.L, y, PDF.W, 6, 'F');
+
+      const belowNorm = parseFloat(r.deg) < parseFloat(r.norm);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...PDF.DARK);
+      doc.text(r.movement, PDF.L + 3, y + 4);
+
+      doc.setTextColor(...PDF.MID);
+      doc.text(r.norm + '°', PDF.L + 70, y + 4, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(belowNorm ? PDF.RED[0] : PDF.GREEN[0], belowNorm ? PDF.RED[1] : PDF.GREEN[1], belowNorm ? PDF.RED[2] : PDF.GREEN[2]);
+      doc.text(r.deg ? r.deg + '°' : '—', PDF.L + 100, y + 4, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...PDF.MID);
+      doc.text(r.pain || 'None', PDF.L + 145, y + 4, { align: 'center' });
+      y += 6;
+    });
+
+    return y + 4;
+  }
+
+  function patientInfoBar(doc, y) {
+    doc.setFillColor(...PDF.BG);
+    doc.roundedRect(PDF.L, y, PDF.W, 14, 2, 2, 'F');
+    doc.setDrawColor(...PDF.GOLD);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(PDF.L, y, PDF.W, 14, 2, 2, 'S');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const complaint = urlParams.get('complaint') || '—';
+    const phase     = urlParams.get('phase')     || '—';
+    const cpStart   = urlParams.get('cp_start')  || '—';
+    const provider  = urlParams.get('provider')  || '—';
+
+    const cols = [
+      { label: 'Patient',          val: contactName  || '—' },
+      { label: 'Chief Complaint',  val: complaint },
+      { label: 'Phase',            val: phase },
+      { label: 'Care Plan Start',  val: cpStart },
+      { label: 'Provider',         val: provider },
+    ];
+
+    const colW = PDF.W / cols.length;
+    cols.forEach((c, i) => {
+      const x = PDF.L + i * colW + 3;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...PDF.LIGHT);
+      doc.text(c.label.toUpperCase(), x, y + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...PDF.DARK);
+      doc.text(String(c.val), x, y + 11);
+    });
+
+    return y + 18;
+  }
+
+  // ── Build Questionnaire PDF ──
+  function buildQuestionnairePDF(q, fname) {
+    const doc = newDoc();
+    let y = 14;
+
+    y = pdfHeader(doc, 'Progress Exam 1 — Patient Questionnaire', `Patient: ${contactName || '—'}`, y);
+    y = patientInfoBar(doc, y);
+    y += 2;
+
+    // Star rating
+    y = sectionHeading(doc, 'Experience Rating', y);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...PDF.GOLD);
+    const stars = '★'.repeat(parseInt(q.stars) || 0) + '☆'.repeat(5 - (parseInt(q.stars) || 0));
+    doc.text(stars + `  (${q.stars}/5)`, PDF.L + 3, y);
+    y += 10;
+
+    y = sectionHeading(doc, 'Patient Responses', y);
+
+    const questions = [
+      { n:2,  q:'Health Goals at this point in care',               a: q.q2vals },
+      { n:3,  q:'Have we explained your care plan objective?',      a: q.q3,    flag: q.q3 === 'No' },
+      { n:4,  q:'Has the doctor explained the cause of your problem (Subluxation)?', a: q.q4, flag: q.q4 === 'No' },
+      { n:5,  q:'Do you understand the difference between your symptom and the problem?', a: q.q5, flag: q.q5 === 'No' },
+      { n:6,  q:'What Phase of Subluxation are you in?',            a: q.q6 },
+      { n:7,  q:'How long has this problem been in your spine?',    a: q.q7 ? q.q7 + ' years' : '—' },
+      { n:8,  q:'3 Legs of The 3 Legged Stool — select all you know:', a: q.q8vals },
+      { n:9,  q:"Do you understand the doctor's recommendation?",   a: q.q9,   flag: q.q9 === 'No' },
+      { n:10, q:'Adjustment frequency per week (scheduled)',         a: q.q10 ? q.q10 + 'x / week' : '—' },
+      { n:11, q:"Have you been following the doctor's recommendations?", a: q.q11, flag: q.q11 === 'No' },
+      { n:12, q:'How could we help you maximize your results?',     a: q.q12 },
+      { n:13, q:'Family members due for a Spine & Nerve System Check-up?', a: q.q13 },
+      { n:14, q:'Topics of interest to learn more about',           a: q.q14vals },
+    ];
+
+    questions.forEach(item => {
+      if (y > 265) { pdfFooter(doc, doc.getNumberOfPages(), '?'); doc.addPage(); y = 14; }
+      y = qRow(doc, item.n, item.q, item.a, y, item.flag || false);
+    });
+
+    // Add page numbers
+    const total = doc.getNumberOfPages();
+    for (let i = 1; i <= total; i++) { doc.setPage(i); pdfFooter(doc, i, total); }
+
+    doc.save(`${fname}_PE1_Questionnaire.pdf`);
+  }
+
+  // ── Build Full Report PDF ──
+  function buildFullReportPDF(q, r, fname) {
+    const doc = newDoc();
+    let y = 14;
+
+    y = pdfHeader(doc, 'Progress Exam 1 — Full Clinical Report', `Patient: ${contactName || '—'}  •  Internal Use Only`, y);
+    y = patientInfoBar(doc, y);
+    y += 2;
+
+    // ── Section: Patient Questionnaire Summary ──
+    y = sectionHeading(doc, 'Patient Questionnaire Summary', y);
+
+    const flaggedItems = [];
+    [
+      { label: 'Care plan objective explained',     question: 'Have we done a good job explaining the objective of your care plan? Do you understand why you are getting adjusted?',      val: q.q3,  flag: q.q3  === 'No' },
+      { label: 'Cause of problem explained',        question: 'Has the doctor fully explained the cause of your problem? Do you understand your problem (Subluxation)?',                   val: q.q4,  flag: q.q4  === 'No' },
+      { label: 'Symptom vs problem understood',     question: 'Do you understand the difference between your symptom and the problem (Subluxation)?',                                       val: q.q5,  flag: q.q5  === 'No' },
+      { label: "Doctor's recommendation understood",question: "Do you understand the doctor's recommendation for your care?",                                                                val: q.q9,  flag: q.q9  === 'No' },
+      { label: 'Following adjustment schedule',     question: "Have you been following the doctor's recommendations and keeping your adjustment schedule?",                                  val: q.q11, flag: q.q11 === 'No' },
+    ].forEach(item => {
+      if (item.flag) flaggedItems.push({ label: item.label, question: item.question });
+      y = qRow(doc, '', item.label, item.val, y, item.flag);
+      if (y > 265) { pdfFooter(doc, doc.getNumberOfPages(), '?'); doc.addPage(); y = 14; }
+    });
+
+    // Star + extras
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF.MID);
+    doc.text(`Experience Rating: ${q.stars}/5  |  Phase: ${q.q6}  |  Years: ${q.q7}  |  Frequency: ${q.q10}x/wk`, PDF.L + 3, y);
+    y += 7;
+    doc.text(`Health Goals: ${q.q2vals}`, PDF.L + 3, y);
+    y += 6;
+    doc.text(`3 Legged Stool: ${q.q8vals}`, PDF.L + 3, y);
+    y += 6;
+    if (q.q12 && q.q12 !== '—') {
+      const wrapped = doc.splitTextToSize(`Patient Feedback: ${q.q12}`, PDF.W - 6);
+      doc.text(wrapped, PDF.L + 3, y);
+      y += wrapped.length * 5;
+    }
+    y += 4;
+
+    // ── Flags box ──
+    if (flaggedItems.length > 0) {
+      if (y > 240) { pdfFooter(doc, doc.getNumberOfPages(), '?'); doc.addPage(); y = 14; }
+      // Estimate box height: ~18mm per flagged item (label + question wrapped)
+      const flagBoxH = 8 + flaggedItems.length * 18;
+      doc.setFillColor(255, 240, 240);
+      doc.roundedRect(PDF.L, y, PDF.W, flagBoxH, 2, 2, 'F');
+      doc.setDrawColor(...PDF.RED);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(PDF.L, y, PDF.W, flagBoxH, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...PDF.RED);
+      doc.text('FLAGS FOR DOCTOR REVIEW', PDF.L + 4, y + 5);
+      y += 8;
+      flaggedItems.forEach(f => {
+        // Label in bold
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...PDF.RED);
+        doc.text('• ' + f.label, PDF.L + 6, y);
+        y += 5;
+        // Full question in normal weight, indented
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(160, 60, 60);
+        const qLines = doc.splitTextToSize(f.question, PDF.W - 16);
+        doc.text(qLines, PDF.L + 10, y);
+        y += qLines.length * 4.5 + 3;
+      });
+      y += 4;
+    }
+
+    // ── ROM Tables ──
+    if (y > 180) { pdfFooter(doc, doc.getNumberOfPages(), '?'); doc.addPage(); y = 14; }
+    y = romTable(doc, r.cerv, 'Cervical', y);
+    if (y > 180) { pdfFooter(doc, doc.getNumberOfPages(), '?'); doc.addPage(); y = 14; }
+    y = romTable(doc, r.lumb, 'Lumbar', y);
+
+    // ── Bilateral Balances ──
+    y += 2;
+    y = sectionHeading(doc, 'Bilateral Balances', y);
+    doc.setFillColor(...PDF.BG);
+    doc.roundedRect(PDF.L, y, PDF.W, 14, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF.DARK);
+    doc.text(`Current Balance — Left: ${r.balL}   Right: ${r.balR}`, PDF.L + 4, y + 9);
+    y += 18;
+
+    // ── CA Notes ──
+    const caNotes = document.getElementById('caNotes')?.value?.trim();
+    if (caNotes) {
+      if (y > 230) { pdfFooter(doc, doc.getNumberOfPages(), '?'); doc.addPage(); y = 14; }
+      y = sectionHeading(doc, 'CA Notes for Doctor', y);
+      doc.setFillColor(...PDF.BG);
+      const noteLines = doc.splitTextToSize(caNotes, PDF.W - 8);
+      doc.rect(PDF.L, y, PDF.W, noteLines.length * 5 + 6, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...PDF.DARK);
+      doc.text(noteLines, PDF.L + 4, y + 5);
+      y += noteLines.length * 5 + 10;
+    }
+
+    const total = doc.getNumberOfPages();
+    for (let i = 1; i <= total; i++) { doc.setPage(i); pdfFooter(doc, i, total); }
+
+    doc.save(`${fname}_PE1_FullReport.pdf`);
+  }
+
+  async function submitAll() {
+    if (typeof window.jspdf === 'undefined') {
+      alert('PDF library not loaded. Please refresh and try again.');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled    = true;
+    btn.textContent = 'Generating PDFs...';
+
+    const fname = (contactName || 'Patient').replace(/\s+/g, '_');
+
+    try {
+      const q = collectQuestionnaire();
+      const r = collectROMStructured();
+
+      buildQuestionnairePDF(q, fname);
+      await new Promise(res => setTimeout(res, 400));
+      buildFullReportPDF(q, r, fname);
+
+      btn.textContent = 'Sending to GHL...';
+      const success = await sendToGHL({
+        contact_name:      contactName,
+        contact_email:     contactEmail,
+        exam_number:       'Progress Exam 1',
+        current_balance:   r.curBal,
+        experience_rating: q.stars,
+        rom_note:          r.note,
+        submitted_at:      new Date().toISOString()
+      });
+
+      btn.textContent      = success ? '✓ PDFs Saved & Sent to GHL' : '⚠ PDFs saved — GHL sync failed';
+      btn.style.background = success ? '#16a34a' : '#dc2626';
+      setTimeout(() => { btn.textContent = 'Generate PDF & Send to GHL'; btn.style.background = ''; btn.disabled = false; }, 5000);
+
+    } catch(err) {
+      console.error(err);
+      alert('Error generating PDFs. Please try again.');
+      btn.textContent = 'Generate PDF & Send to GHL';
+      btn.disabled    = false;
+    }
+  }
+
+  // ── Init ──
+  document.addEventListener('DOMContentLoaded', () => {
+    handleUrlAutofill();
+    updateProgress();
+    document.querySelectorAll('.check-item input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('click', e => e.stopPropagation());
+    });
+  });
+</script>
+</body>
+</html>
