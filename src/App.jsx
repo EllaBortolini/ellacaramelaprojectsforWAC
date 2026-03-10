@@ -137,17 +137,18 @@ const BACKLOG_SEED = [
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
 const STATUS_META = {
-  active:  { label: "Live",       color: "#22C55E", bg: "rgba(34,197,94,0.1)" },
-  build:   { label: "In Build",   color: "#3B82F6", bg: "rgba(59,130,246,0.1)" },
-  review:  { label: "In Review",  color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
-  blocked: { label: "Blocked",    color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
-  planned: { label: "Planned",    color: "#A855F7", bg: "rgba(168,85,247,0.1)" },
+  active: { label: "Live", color: "#22C55E", bg: "rgba(34,197,94,0.1)" },
+  build: { label: "In Build", color: "#3B82F6", bg: "rgba(59,130,246,0.1)" },
+  review: { label: "In Review", color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
+  blocked: { label: "Blocked", color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
+  planned: { label: "Planned", color: "#A855F7", bg: "rgba(168,85,247,0.1)" },
+  completed: { label: "Completed", color: "#6B7280", bg: "rgba(107,114,128,0.1)" },
 };
 
 const PRIORITY_META = {
-  high:   { label: "High",           color: "#EF4444", bg: "rgba(239,68,68,0.12)" },
-  medium: { label: "Medium",         color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
-  low:    { label: "Low",            color: "#6B7280", bg: "rgba(107,114,128,0.12)" },
+  high: { label: "High", color: "#EF4444", bg: "rgba(239,68,68,0.12)" },
+  medium: { label: "Medium", color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
+  low: { label: "Low", color: "#6B7280", bg: "rgba(107,114,128,0.12)" },
   future: { label: "Future Project", color: "#8B5CF6", bg: "rgba(139,92,246,0.12)" },
 };
 
@@ -235,7 +236,8 @@ function AddModal({ onClose, onSave }) {
             role: "user",
             content: [
               { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
-              { type: "text", text: `Extract project info from this document and return ONLY valid JSON (no markdown, no backticks):
+              {
+                type: "text", text: `Extract project info from this document and return ONLY valid JSON (no markdown, no backticks):
 {
   "name": "concise project name",
   "goal": "one sentence goal",
@@ -522,6 +524,19 @@ function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpda
 
           {/* Footer controls */}
           <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: "1px solid #1F2937", flexWrap: "wrap", alignItems: "center" }}>
+            {project.status !== "completed" ? (
+              <button
+                onClick={() => onUpdateStatus(project.id, "completed")}
+                style={{ background: "#22C55E", color: "#000", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                ✓ Mark Completed
+              </button>
+            ) : (
+              <button
+                onClick={() => onUpdateStatus(project.id, "active")}
+                style={{ background: "rgba(197,162,93,0.1)", color: "#C5A25D", border: "1px solid rgba(197,162,93,0.2)", borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
+                ↺ Re-open
+              </button>
+            )}
             <select
               value={project.status}
               onChange={e => onUpdateStatus(project.id, e.target.value)}
@@ -548,12 +563,12 @@ function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpda
 // ── MAIN APP ───────────────────────────────────────────────────────────────────
 export default function App() {
   const [projects, setProjects] = useState([]);
-  const [backlog, setBacklog]   = useState([]);
-  const [loaded, setLoaded]     = useState(false);
-  const [view, setView]         = useState("dashboard");
-  const [showAdd, setShowAdd]   = useState(false);
-  const [filter, setFilter]     = useState("all");
-  const [search, setSearch]     = useState("");
+  const [backlog, setBacklog] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [view, setView] = useState("dashboard");
+  const [showAdd, setShowAdd] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   // ── STORAGE ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -572,8 +587,8 @@ export default function App() {
     load();
   }, []);
 
-  async function saveProjects(p) { setProjects(p); try { await window.storage.set("wac-projects", JSON.stringify(p), true); } catch {} }
-  async function saveBacklog(b)  { setBacklog(b);  try { await window.storage.set("wac-backlog",  JSON.stringify(b), true); } catch {} }
+  async function saveProjects(p) { setProjects(p); try { await window.storage.set("wac-projects", JSON.stringify(p), true); } catch { } }
+  async function saveBacklog(b) { setBacklog(b); try { await window.storage.set("wac-backlog", JSON.stringify(b), true); } catch { } }
 
   // ── PROJECT ACTIONS ────────────────────────────────────────────────────────
   function addProject(p) { saveProjects([p, ...projects]); }
@@ -589,9 +604,9 @@ export default function App() {
   }
 
   function updateProgress(pid, val) { saveProjects(projects.map(p => p.id === pid ? { ...p, progress: val } : p)); }
-  function updateStatus(pid, val)   { saveProjects(projects.map(p => p.id === pid ? { ...p, status: val }   : p)); }
-  function deleteProject(pid)       { saveProjects(projects.filter(p => p.id !== pid)); }
-  function deleteBacklog(bid)       { saveBacklog(backlog.filter(b => b.id !== bid)); }
+  function updateStatus(pid, val) { saveProjects(projects.map(p => p.id === pid ? { ...p, status: val } : p)); }
+  function deleteProject(pid) { saveProjects(projects.filter(p => p.id !== pid)); }
+  function deleteBacklog(bid) { saveBacklog(backlog.filter(b => b.id !== bid)); }
 
   function promoteToActive(bid) {
     const b = backlog.find(x => x.id === bid);
@@ -608,11 +623,12 @@ export default function App() {
     return true;
   });
 
-  const activeProjects  = filtered.filter(p => ["active", "build", "review"].includes(p.status));
+  const activeProjects = filtered.filter(p => ["active", "build", "review"].includes(p.status));
   const blockedProjects = filtered.filter(p => p.status === "blocked" || (p.blocker && p.blocker.length > 2));
   const plannedProjects = filtered.filter(p => p.status === "planned");
-  const avgProgress     = projects.length ? Math.round(projects.reduce((a, p) => a + p.progress, 0) / projects.length) : 0;
-  const overdueCount    = projects.filter(p => isOverdue(p.dueDate)).length;
+  const completedProjects = filtered.filter(p => p.status === "completed");
+  const avgProgress = projects.length ? Math.round(projects.reduce((a, p) => a + p.progress, 0) / projects.length) : 0;
+  const overdueCount = projects.filter(p => isOverdue(p.dueDate)).length;
 
   if (!loaded) return (
     <div style={{ minHeight: "100vh", background: "#080C14", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -622,9 +638,9 @@ export default function App() {
 
   // ── STYLES ─────────────────────────────────────────────────────────────────
   const S = {
-    app:   { minHeight: "100vh", background: "#080C14", color: "#E2E8F0", fontFamily: "'DM Sans', sans-serif", display: "flex" },
-    side:  { width: 220, minWidth: 220, background: "#0D1117", borderRight: "1px solid #1F2937", padding: "24px 12px", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflow: "hidden" },
-    main:  { flex: 1, padding: "36px 44px", overflowX: "hidden", maxWidth: 1100 },
+    app: { minHeight: "100vh", background: "#080C14", color: "#E2E8F0", fontFamily: "'DM Sans', sans-serif", display: "flex" },
+    side: { width: 220, minWidth: 220, background: "#0D1117", borderRight: "1px solid #1F2937", padding: "24px 12px", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflow: "hidden" },
+    main: { flex: 1, padding: "36px 44px", overflowX: "hidden", maxWidth: 1100 },
     navItem: (active) => ({
       display: "flex", alignItems: "center", gap: 9, padding: "9px 12px",
       borderRadius: 8, cursor: "pointer", fontSize: 13,
@@ -635,15 +651,16 @@ export default function App() {
     }),
     statCard: { background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: "18px 20px", flex: 1 },
     sectionTitle: { fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#F1F5F9", marginBottom: 4 },
-    sectionSub:   { fontSize: 12, color: "#4B5563", marginBottom: 20 },
+    sectionSub: { fontSize: 12, color: "#4B5563", marginBottom: 20 },
     input: { background: "#111827", border: "1px solid #1F2937", borderRadius: 8, padding: "9px 14px", color: "#E2E8F0", fontSize: 13, fontFamily: "inherit", outline: "none", width: "100%" },
   };
 
   const NAV = [
-    { id: "dashboard", label: "Dashboard",     icon: "▦" },
-    { id: "active",    label: "Active Projects", icon: "◉", count: activeProjects.length },
-    { id: "planned",   label: "Planned",        icon: "◌", count: plannedProjects.length },
-    { id: "backlog",   label: "Backlog",        icon: "⋯", count: backlog.length },
+    { id: "dashboard", label: "Dashboard", icon: "▦" },
+    { id: "active", label: "Active Projects", icon: "◉", count: activeProjects.length },
+    { id: "planned", label: "Planned", icon: "◌", count: plannedProjects.length },
+    { id: "completed", label: "Completed", icon: "✓", count: completedProjects.length },
+    { id: "backlog", label: "Backlog", icon: "⋯", count: backlog.length },
   ];
 
   return (
@@ -674,7 +691,7 @@ export default function App() {
 
           <div style={{ marginTop: 16, borderTop: "1px solid #1F2937", paddingTop: 16 }}>
             <div style={{ fontSize: 10, color: "#374151", fontFamily: "'DM Mono', monospace", letterSpacing: "0.12em", marginBottom: 8, paddingLeft: 12 }}>FILTER TYPE</div>
-            {[["all","All"],["ghl","GHL"],["ai","AI Build"]].map(([k,l]) => (
+            {[["all", "All"], ["ghl", "GHL"], ["ai", "AI Build"]].map(([k, l]) => (
               <button key={k} style={S.navItem(filter === k && view !== "dashboard")} onClick={() => { setFilter(k); setView("active"); }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: k === "ghl" ? "#3B82F6" : k === "ai" ? "#A855F7" : "#C5A25D", display: "inline-block", flexShrink: 0 }} />
                 {l}
@@ -800,6 +817,18 @@ export default function App() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* ── COMPLETED ── */}
+          {view === "completed" && (
+            <div>
+              <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#F1F5F9", marginBottom: 6 }}>Completed Projects</div>
+              <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 24 }}>Success is a series of small wins.</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {completedProjects.length === 0 && <div style={{ color: "#4B5563", fontSize: 13 }}>No projects completed yet.</div>}
+                {completedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} />)}
               </div>
             </div>
           )}
