@@ -200,12 +200,21 @@ function Tag({ children }) {
   return <span style={{ background: "#1E2433", color: "#6B7280", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontFamily: "'DM Mono', monospace" }}>{children}</span>;
 }
 
-// ── ADD PROJECT MODAL ──────────────────────────────────────────────────────────
-function AddModal({ onClose, onSave }) {
-  const [form, setForm] = useState({
-    name: "", type: "ghl", status: "planned", priority: "medium",
-    addedBy: "Ella", addedByOther: "", dueDate: "", goal: "", blocker: "", notes: "",
-    nextActions: "", kpi: ""
+// ── ADD / EDIT PROJECT MODAL ───────────────────────────────────────────────────
+function ProjectModal({ onClose, onSave, existing }) {
+  const isEdit = !!existing;
+  const [form, setForm] = useState(() => {
+    if (existing) {
+      return {
+        name: existing.name || "", type: existing.type || "ghl", status: existing.status || "planned",
+        priority: existing.priority || "medium", addedBy: TEAM.includes(existing.addedBy) ? existing.addedBy : "Other",
+        addedByOther: TEAM.includes(existing.addedBy) ? "" : (existing.addedBy || ""),
+        dueDate: existing.dueDate || "", goal: existing.goal || "", blocker: existing.blocker || "",
+        notes: existing.notes || "", nextActions: (existing.nextActions || []).map(a => a.text).join("\n"),
+        kpi: existing.kpi || ""
+      };
+    }
+    return { name: "", type: "ghl", status: "planned", priority: "medium", addedBy: "Ella", addedByOther: "", dueDate: "", goal: "", blocker: "", notes: "", nextActions: "", kpi: "" };
   });
   const [pdfFile, setPdfFile] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -274,12 +283,26 @@ function AddModal({ onClose, onSave }) {
     if (!form.name.trim()) { alert("Project name required."); return; }
     const resolvedAddedBy = form.addedBy === "Other" ? (form.addedByOther.trim() || "Other") : form.addedBy;
     const tasks = form.nextActions.split("\n").filter(Boolean).map(t => ({ text: t.trim(), done: false }));
-    onSave({
-      id: uid(), ...form,
-      addedBy: resolvedAddedBy,
-      nextActions: tasks.length ? tasks : [{ text: "Define first steps", done: false }],
-      progress: 0, createdAt: new Date().toISOString().slice(0, 10)
-    });
+    if (isEdit) {
+      // Preserve done state for matching tasks
+      const oldActions = existing.nextActions || [];
+      const mergedTasks = tasks.map(t => {
+        const match = oldActions.find(o => o.text === t.text);
+        return match ? { ...t, done: match.done } : t;
+      });
+      onSave({
+        ...existing, ...form,
+        addedBy: resolvedAddedBy,
+        nextActions: mergedTasks.length ? mergedTasks : [{ text: "Define first steps", done: false }],
+      });
+    } else {
+      onSave({
+        id: uid(), ...form,
+        addedBy: resolvedAddedBy,
+        nextActions: tasks.length ? tasks : [{ text: "Define first steps", done: false }],
+        progress: 0, createdAt: new Date().toISOString().slice(0, 10)
+      });
+    }
     onClose();
   }
 
@@ -298,8 +321,8 @@ function AddModal({ onClose, onSave }) {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
           <div>
-            <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#F1F5F9" }}>Add New Project</div>
-            <div style={{ fontSize: 12, color: "#6B7280", marginTop: 3 }}>Select who's adding to see the right fields</div>
+            <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#F1F5F9" }}>{isEdit ? "Edit Project" : "Add New Project"}</div>
+            <div style={{ fontSize: 12, color: "#6B7280", marginTop: 3 }}>{isEdit ? "Update project details below" : "Select who's adding to see the right fields"}</div>
           </div>
           <button onClick={onClose} style={{ background: "#1F2937", border: "none", color: "#9CA3AF", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
@@ -417,7 +440,7 @@ function AddModal({ onClose, onSave }) {
         {/* Actions */}
         <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
           <button onClick={handleSave} style={{ background: "#C5A25D", color: "#000", border: "none", borderRadius: 8, padding: "11px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            Save Project
+            {isEdit ? "Update Project" : "Save Project"}
           </button>
           <button onClick={onClose} style={{ background: "transparent", color: "#6B7280", border: "1px solid #2A3147", borderRadius: 8, padding: "11px 20px", fontSize: 14, cursor: "pointer" }}>
             Cancel
@@ -429,7 +452,7 @@ function AddModal({ onClose, onSave }) {
 }
 
 // ── PROJECT CARD ───────────────────────────────────────────────────────────────
-function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpdateStatus }) {
+function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpdateStatus, onEdit, onUnblock }) {
   const [expanded, setExpanded] = useState(false);
   const s = STATUS_META[project.status] || STATUS_META.planned;
   const p = PRIORITY_META[project.priority] || PRIORITY_META.medium;
@@ -524,6 +547,18 @@ function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpda
 
           {/* Footer controls */}
           <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: "1px solid #1F2937", flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              onClick={() => onEdit(project)}
+              style={{ background: "rgba(197,162,93,0.1)", color: "#C5A25D", border: "1px solid rgba(197,162,93,0.2)", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+              ✎ Edit
+            </button>
+            {(project.blocker && project.blocker.length > 2) && (
+              <button
+                onClick={() => onUnblock(project.id)}
+                style={{ background: "rgba(34,197,94,0.1)", color: "#22C55E", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                🔓 Unblock
+              </button>
+            )}
             {project.status !== "completed" ? (
               <button
                 onClick={() => onUpdateStatus(project.id, "completed")}
@@ -567,6 +602,7 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState("dashboard");
   const [showAdd, setShowAdd] = useState(false);
+  const [editProject, setEditProject] = useState(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
 
@@ -608,6 +644,17 @@ export default function App() {
   function deleteProject(pid) { saveProjects(projects.filter(p => p.id !== pid)); }
   function deleteBacklog(bid) { saveBacklog(backlog.filter(b => b.id !== bid)); }
 
+  function handleEditSave(updated) {
+    saveProjects(projects.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+  }
+
+  function unblockProject(pid) {
+    saveProjects(projects.map(p => {
+      if (p.id !== pid) return p;
+      return { ...p, blocker: "", status: p.status === "blocked" ? "active" : p.status };
+    }));
+  }
+
   function promoteToActive(bid) {
     const b = backlog.find(x => x.id === bid);
     if (!b) return;
@@ -640,7 +687,7 @@ export default function App() {
   const S = {
     app: { minHeight: "100vh", background: "#080C14", color: "#E2E8F0", fontFamily: "'DM Sans', sans-serif", display: "flex" },
     side: { width: 220, minWidth: 220, background: "#0D1117", borderRight: "1px solid #1F2937", padding: "24px 12px", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflow: "hidden" },
-    main: { flex: 1, padding: "36px 44px", overflowX: "hidden", maxWidth: 1100 },
+    main: { flex: 1, padding: "36px 44px", overflowX: view === "kanban" ? "auto" : "hidden", maxWidth: view === "kanban" ? "none" : 1100 },
     navItem: (active) => ({
       display: "flex", alignItems: "center", gap: 9, padding: "9px 12px",
       borderRadius: 8, cursor: "pointer", fontSize: 13,
@@ -658,6 +705,7 @@ export default function App() {
   const NAV = [
     { id: "dashboard", label: "Dashboard", icon: "▦" },
     { id: "active", label: "Active Projects", icon: "◉", count: activeProjects.length },
+    { id: "kanban", label: "Kanban Board", icon: "▤" },
     { id: "planned", label: "Planned", icon: "◌", count: plannedProjects.length },
     { id: "completed", label: "Completed", icon: "✓", count: completedProjects.length },
     { id: "backlog", label: "Backlog", icon: "⋯", count: backlog.length },
@@ -667,7 +715,8 @@ export default function App() {
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } ::-webkit-scrollbar { width: 5px } ::-webkit-scrollbar-track { background: #0D1117 } ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 10px } select option { background: #111827 }`}</style>
 
-      {showAdd && <AddModal onClose={() => setShowAdd(false)} onSave={addProject} />}
+      {showAdd && <ProjectModal onClose={() => setShowAdd(false)} onSave={addProject} />}
+      {editProject && <ProjectModal existing={editProject} onClose={() => setEditProject(null)} onSave={handleEditSave} />}
 
       <div style={S.app}>
         {/* SIDEBAR */}
@@ -747,7 +796,7 @@ export default function App() {
                 <div style={{ ...S.sectionSub, marginBottom: 16 }}>Active and in-build projects</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {activeProjects.length === 0 && <div style={{ color: "#4B5563", fontSize: 13 }}>Nothing active right now.</div>}
-                  {activeProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} />)}
+                  {activeProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} onEdit={p => setEditProject(p)} onUnblock={unblockProject} />)}
                 </div>
               </div>
 
@@ -757,10 +806,75 @@ export default function App() {
                   <div style={{ ...S.sectionTitle, color: "#FCA5A5" }}>Blocked / Needs Attention</div>
                   <div style={{ ...S.sectionSub, marginBottom: 16 }}>Resolve these to unblock progress</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {blockedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} />)}
+                    {blockedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} onEdit={p => setEditProject(p)} onUnblock={unblockProject} />)}
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── KANBAN ── */}
+          {view === "kanban" && (
+            <div>
+              <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
+                <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#F1F5F9", flex: 1 }}>Kanban Board</div>
+                <button onClick={() => setShowAdd(true)} style={{ background: "#C5A25D", color: "#000", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+                  + New Project
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, alignItems: "flex-start" }}>
+                {Object.entries(STATUS_META).filter(([k]) => k !== "completed").map(([statusKey, meta]) => {
+                  const colProjects = projects.filter(p => p.status === statusKey);
+                  return (
+                    <div key={statusKey} style={{ minWidth: 280, maxWidth: 320, flex: "0 0 280px", background: "#0D1117", border: "1px solid #1F2937", borderRadius: 12, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 140px)" }}>
+                      {/* Column header */}
+                      <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #1F2937", display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: meta.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#F1F5F9", flex: 1 }}>{meta.label}</span>
+                        <span style={{ background: meta.bg, color: meta.color, borderRadius: 99, padding: "2px 8px", fontSize: 11, fontFamily: "'DM Mono', monospace", fontWeight: 600 }}>{colProjects.length}</span>
+                      </div>
+                      {/* Column body */}
+                      <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", flex: 1 }}>
+                        {colProjects.length === 0 && (
+                          <div style={{ color: "#374151", fontSize: 12, textAlign: "center", padding: "20px 10px", fontStyle: "italic" }}>No projects</div>
+                        )}
+                        {colProjects.map(p => {
+                          const pr = PRIORITY_META[p.priority] || PRIORITY_META.medium;
+                          const overdue = isOverdue(p.dueDate);
+                          const days = daysUntil(p.dueDate);
+                          return (
+                            <div key={p.id} style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 10, padding: "12px 14px", cursor: "pointer", transition: "border-color 0.15s" }}
+                              onMouseEnter={e => e.currentTarget.style.borderColor = meta.color}
+                              onMouseLeave={e => e.currentTarget.style.borderColor = "#1F2937"}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: "#F1F5F9", marginBottom: 6, lineHeight: 1.3 }}>{p.name}</div>
+                              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
+                                <Pill label={pr.label} color={pr.color} bg={pr.bg} small />
+                                <Tag>{TYPE_LABEL[p.type] || p.type}</Tag>
+                                {p.blocker && p.blocker.length > 2 && <span style={{ fontSize: 10, color: "#EF4444", fontWeight: 600 }}>⚠ Blocked</span>}
+                              </div>
+                              {p.dueDate && (
+                                <div style={{ fontSize: 11, color: overdue ? "#EF4444" : days <= 3 ? "#F59E0B" : "#6B7280", fontFamily: "'DM Mono', monospace", marginBottom: 6 }}>
+                                  📅 {p.dueDate} {overdue ? `(${Math.abs(days)}d overdue)` : days !== null && days <= 7 ? `(${days}d)` : ""}
+                                </div>
+                              )}
+                              <ProgressBar value={p.progress} color={meta.color} />
+                              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                                <button onClick={() => setEditProject(p)} style={{ background: "rgba(197,162,93,0.1)", color: "#C5A25D", border: "1px solid rgba(197,162,93,0.2)", borderRadius: 5, padding: "4px 8px", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>✎ Edit</button>
+                                {p.blocker && p.blocker.length > 2 && (
+                                  <button onClick={() => unblockProject(p.id)} style={{ background: "rgba(34,197,94,0.1)", color: "#22C55E", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 5, padding: "4px 8px", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>🔓</button>
+                                )}
+                                <select value={p.status} onChange={e => updateStatus(p.id, e.target.value)} style={{ background: "#1A1F2E", border: "1px solid #2A3147", borderRadius: 5, padding: "3px 6px", color: "#9CA3AF", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                                  {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -776,7 +890,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {filtered.length === 0 && <div style={{ color: "#4B5563", fontSize: 13 }}>No projects match.</div>}
-                {filtered.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} />)}
+                {filtered.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} onEdit={p => setEditProject(p)} onUnblock={unblockProject} />)}
               </div>
             </div>
           )}
@@ -787,7 +901,7 @@ export default function App() {
               <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#F1F5F9", marginBottom: 20 }}>Planned Projects</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {plannedProjects.length === 0 && <div style={{ color: "#4B5563", fontSize: 13 }}>No planned projects.</div>}
-                {plannedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} />)}
+                {plannedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} onEdit={p => setEditProject(p)} onUnblock={unblockProject} />)}
               </div>
             </div>
           )}
@@ -828,7 +942,7 @@ export default function App() {
               <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 24 }}>Success is a series of small wins.</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {completedProjects.length === 0 && <div style={{ color: "#4B5563", fontSize: 13 }}>No projects completed yet.</div>}
-                {completedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} />)}
+                {completedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} onEdit={p => setEditProject(p)} onUnblock={unblockProject} />)}
               </div>
             </div>
           )}
