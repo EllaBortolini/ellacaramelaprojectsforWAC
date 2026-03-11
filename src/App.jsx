@@ -452,7 +452,7 @@ function ProjectModal({ onClose, onSave, existing }) {
 }
 
 // ── PROJECT CARD ───────────────────────────────────────────────────────────────
-function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpdateStatus, onEdit, onUnblock }) {
+function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpdateStatus, onEdit, onUnblock, onArchive }) {
   const [expanded, setExpanded] = useState(false);
   const s = STATUS_META[project.status] || STATUS_META.planned;
   const p = PRIORITY_META[project.priority] || PRIORITY_META.medium;
@@ -566,11 +566,20 @@ function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpda
                 ✓ Mark Completed
               </button>
             ) : (
-              <button
-                onClick={() => onUpdateStatus(project.id, "active")}
-                style={{ background: "rgba(197,162,93,0.1)", color: "#C5A25D", border: "1px solid rgba(197,162,93,0.2)", borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
-                ↺ Re-open
-              </button>
+              <>
+                <button
+                  onClick={() => onUpdateStatus(project.id, "active")}
+                  style={{ background: "rgba(197,162,93,0.1)", color: "#C5A25D", border: "1px solid rgba(197,162,93,0.2)", borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
+                  ↺ Re-open
+                </button>
+                {onArchive && (
+                  <button
+                    onClick={() => onArchive(project.id)}
+                    style={{ background: "rgba(107,114,128,0.1)", color: "#9CA3AF", border: "1px solid rgba(107,114,128,0.2)", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                    📦 Archive
+                  </button>
+                )}
+              </>
             )}
             <select
               value={project.status}
@@ -599,6 +608,7 @@ function ProjectCard({ project, onToggleTask, onUpdateProgress, onDelete, onUpda
 export default function App() {
   const [projects, setProjects] = useState([]);
   const [backlog, setBacklog] = useState([]);
+  const [archive, setArchive] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState("dashboard");
   const [showAdd, setShowAdd] = useState(false);
@@ -612,11 +622,14 @@ export default function App() {
       try {
         const pr = await window.storage.get("wac-projects", true);
         const bl = await window.storage.get("wac-backlog", true);
+        const ar = await window.storage.get("wac-archive", true);
         setProjects(pr ? JSON.parse(pr.value) : SEED);
         setBacklog(bl ? JSON.parse(bl.value) : BACKLOG_SEED);
+        setArchive(ar ? JSON.parse(ar.value) : []);
       } catch {
         setProjects(SEED);
         setBacklog(BACKLOG_SEED);
+        setArchive([]);
       }
       setLoaded(true);
     }
@@ -625,6 +638,7 @@ export default function App() {
 
   async function saveProjects(p) { setProjects(p); try { await window.storage.set("wac-projects", JSON.stringify(p), true); } catch { } }
   async function saveBacklog(b) { setBacklog(b); try { await window.storage.set("wac-backlog", JSON.stringify(b), true); } catch { } }
+  async function saveArchive(a) { setArchive(a); try { await window.storage.set("wac-archive", JSON.stringify(a), true); } catch { } }
 
   // ── PROJECT ACTIONS ────────────────────────────────────────────────────────
   function addProject(p) { saveProjects([p, ...projects]); }
@@ -653,6 +667,25 @@ export default function App() {
       if (p.id !== pid) return p;
       return { ...p, blocker: "", status: p.status === "blocked" ? "active" : p.status };
     }));
+  }
+
+  function archiveProject(pid) {
+    const p = projects.find(x => x.id === pid);
+    if (!p) return;
+    saveArchive([{ ...p, archivedAt: new Date().toISOString().slice(0, 10) }, ...archive]);
+    saveProjects(projects.filter(x => x.id !== pid));
+  }
+
+  function unarchiveProject(pid) {
+    const p = archive.find(x => x.id === pid);
+    if (!p) return;
+    const { archivedAt, ...rest } = p;
+    saveProjects([{ ...rest, status: "completed" }, ...projects]);
+    saveArchive(archive.filter(x => x.id !== pid));
+  }
+
+  function deleteArchived(pid) {
+    saveArchive(archive.filter(x => x.id !== pid));
   }
 
   function promoteToActive(bid) {
@@ -708,6 +741,7 @@ export default function App() {
     { id: "kanban", label: "Kanban Board", icon: "▤" },
     { id: "planned", label: "Planned", icon: "◌", count: plannedProjects.length },
     { id: "completed", label: "Completed", icon: "✓", count: completedProjects.length },
+    { id: "archive", label: "Archive", icon: "📦", count: archive.length },
     { id: "backlog", label: "Backlog", icon: "⋯", count: backlog.length },
   ];
 
@@ -942,7 +976,44 @@ export default function App() {
               <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 24 }}>Success is a series of small wins.</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {completedProjects.length === 0 && <div style={{ color: "#4B5563", fontSize: 13 }}>No projects completed yet.</div>}
-                {completedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} onEdit={p => setEditProject(p)} onUnblock={unblockProject} />)}
+                {completedProjects.map(p => <ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateProgress={updateProgress} onDelete={deleteProject} onUpdateStatus={updateStatus} onEdit={p => setEditProject(p)} onUnblock={unblockProject} onArchive={archiveProject} />)}
+              </div>
+            </div>
+          )}
+
+          {/* ── ARCHIVE ── */}
+          {view === "archive" && (
+            <div>
+              <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#F1F5F9", marginBottom: 6 }}>Archived Projects</div>
+              <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 24 }}>Completed projects moved out of the active view. Restore anytime.</div>
+              {archive.length === 0 && <div style={{ color: "#4B5563", fontSize: 13 }}>No archived projects yet. Archive completed projects to move them here.</div>}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>
+                {archive.map(p => {
+                  const pr = PRIORITY_META[p.priority] || PRIORITY_META.medium;
+                  return (
+                    <div key={p.id} style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 20, opacity: 0.85, transition: "opacity 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+                      onMouseLeave={e => e.currentTarget.style.opacity = "0.85"}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "#F1F5F9", lineHeight: 1.3, flex: 1, paddingRight: 10 }}>{p.name}</div>
+                        <Pill label={pr.label} color={pr.color} bg={pr.bg} small />
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                        <Tag>{TYPE_LABEL[p.type] || p.type}</Tag>
+                        <Tag>👤 {p.addedBy}</Tag>
+                        {p.archivedAt && <Tag>📦 {p.archivedAt}</Tag>}
+                      </div>
+                      {p.goal && <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.6, marginBottom: 12 }}>{p.goal.substring(0, 120)}{p.goal.length > 120 ? "…" : ""}</div>}
+                      <div style={{ marginBottom: 12 }}><ProgressBar value={p.progress || 100} color="#6B7280" /></div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => unarchiveProject(p.id)} style={{ background: "rgba(197,162,93,0.1)", color: "#C5A25D", border: "1px solid rgba(197,162,93,0.2)", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                          ↺ Restore
+                        </button>
+                        <button onClick={() => { if (confirm("Permanently delete this archived project?")) deleteArchived(p.id); }} style={{ background: "transparent", color: "#4B5563", border: "1px solid #1F2937", borderRadius: 6, padding: "6px 10px", fontSize: 11, cursor: "pointer" }}>✕ Delete</button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
