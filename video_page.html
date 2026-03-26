@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Well Adjusted Chiropractic — Your Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:    #3d5c7d;
+    --gold:    #bda054;
+    --gold-dk: #d8b764;
+    --parch:   #F4F1EB;
+    --white:   #FFFFFF;
+    --muted:   #849caf;
+    --slate:   #2d3f52;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--parch);
+    font-family: 'Jost', sans-serif;
+    color: var(--navy);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(197,162,93,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 32px 20px;
+  }
+
+  /* TOP BAR */
+  .top-bar {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+    opacity: 0;
+    animation: fadeDown 0.7s ease 0.1s forwards;
+  }
+
+  .top-bar img { width: 140px; }
+
+  .step-indicator {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold-dk);
+  }
+
+  /* HEADING */
+  .heading-block {
+    text-align: center;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.3s forwards;
+  }
+
+  .heading-block h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 300;
+    color: var(--navy);
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .heading-block h1 em {
+    color: var(--gold-dk);
+    font-style: italic;
+  }
+
+  .heading-block p {
+    font-size: 13px;
+    font-weight: 300;
+    color: #666666;
+    letter-spacing: 0.3px;
+  }
+
+  /* VIDEO CONTAINER — fills remaining space */
+  .video-wrap {
+    width: 100%;
+    max-width: 900px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.5s forwards;
+  }
+
+  .video-shell {
+    position: relative;
+    background: #000;
+    border-radius: 3px;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+    box-shadow: 0 16px 56px rgba(31,45,61,0.15), 0 0 0 1px rgba(197,162,93,0.2);
+  }
+
+  .video-shell iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* GOLD TOP ACCENT */
+  .video-shell::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+    z-index: 2;
+  }
+
+  /* INSTRUCTION */
+  .instruction {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    opacity: 0;
+    animation: fadeIn 0.7s ease 1s forwards;
+  }
+
+  .instruction-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .instruction p {
+    font-size: 11px;
+    font-weight: 400;
+    color: #888888;
+    letter-spacing: 0.3px;
+  }
+
+  /* DIVIDER */
+  .section-divider {
+    width: 100%;
+    max-width: 900px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(197,162,93,0.3), transparent);
+    margin: 16px 0;
+    flex-shrink: 0;
+    opacity: 0;
+    animation: fadeIn 0.6s ease 0.8s forwards;
+  }
+
+  /* CONTINUE SECTION */
+  .continue-section {
+    text-align: center;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.9s forwards;
+  }
+
+  .btn-continue {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: transparent;
+    border: 1px solid var(--navy);
+    color: var(--navy);
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 14px 48px;
+    border-radius: 1px;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  }
+
+  .btn-continue:hover {
+    background: var(--navy);
+    color: var(--gold);
+    transform: translateY(-1px);
+  }
+
+  .btn-continue svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s ease;
+  }
+
+  .btn-continue:hover svg { transform: translateX(3px); }
+
+  /* TAGLINE */
+  .tagline {
+    flex-shrink: 0;
+    padding-top: 12px;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 1.5px;
+    color: rgba(31,45,61,0.2);
+    font-style: italic;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <img src="https://assets.cdn.filesafe.space/uUGu9qTLe0cEAC8VRMtN/media/67b51f9c32195e2c50c7b5e6.png" alt="Well Adjusted Chiropractic">
+    <span class="step-indicator">Step 1 of 2 — Prepare</span>
+  </div>
+
+  <!-- HEADING -->
+  <div class="heading-block">
+    <h1>Before your doctor enters,<br><em>please watch this short video.</em></h1>
+    <p>This will help you understand what to expect during your Report of Findings.</p>
+  </div>
+
+  <!-- VIDEO -->
+  <div class="video-wrap">
+    <div class="video-shell">
+      <iframe
+        src="https://www.youtube.com/embed/8XklvD3UqUE?rel=0&modestbranding=1&color=white"
+        title="Day 2 — What to Expect"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      ></iframe>
+    </div>
+    <div class="instruction">
+      <div class="instruction-dot"></div>
+      <p>Please watch the full video before continuing. Your doctor will be with you shortly.</p>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- CONTINUE -->
+  <div class="continue-section">
+    <a id="continueBtn" href="#" class="btn-continue">
+      Continue to Your Report
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+
+  <p class="tagline">Soft touch. Remarkable results.™</p>
+
+</div>
+
+<script>
+  document.getElementById('continueBtn').href = '/rof-page' + window.location.search;
+</script>
+
+</body>
+</html>
